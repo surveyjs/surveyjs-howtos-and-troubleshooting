@@ -88,9 +88,9 @@ ComponentCollection.Instance.add({
     // Apply settings when the question is loaded
     applyRequiredSettings(question);
   },
-  onPropertyChanged(question, property, value) {
+  onPropertyChanged(question, propertyName, value) {
     // Re-apply if a require* property changes
-    if (property.name.startsWith("require")) {
+    if (propertyName.startsWith("require")) {
       applyRequiredSettings(question);
     }
   }
