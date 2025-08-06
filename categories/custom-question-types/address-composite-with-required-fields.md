@@ -1,55 +1,35 @@
-# Create Address Composite Question in SurveyJS with Customizable Required Fields
+# Create a Reusable Composite Question and Dynamically Make Nested Questions Required
 
-## Question
-How do I create an "address" composite question in SurveyJS that presents a structured address form (with fields like Street Address, City, State, Zip Code) and allows changing the `isRequired` property for the nested questions via custom properties?
+## Problem
 
-### Base Address Elements JSON
+I want to create an "Address" composite question that represents a structured address form with fields like Street Address, City, State, and Zip Code. Additionally, I need the ability to control whether each nested field is required using custom properties.
+
+## Solution
+
+In SurveyJS, composite questions are reusable custom question types that combine existing questions into a single component. They are especially useful when you want to encapsulate a group of related fields (such as address information) into a single question that can be reused across surveys.
+
+Composite questions output an object with nested values. For example:
+
 ```json
 {
-  "elements": [
-    {
-      "type": "text",
-      "name": "AddressLine1",
-      "title": "Street Address",
-      "isRequired": true
-    },
-    {
-      "type": "text",
-      "name": "AddressLine2",
-      "title": "Street Address 2",
-      "startWithNewLine": false
-    },
-    {
-      "type": "text",
-      "name": "City",
-      "title": "City",
-      "isRequired": true
-    },
-    {
-      "type": "text",
-      "name": "State",
-      "title": "State",
-      "isRequired": true,
-      "startWithNewLine": false
-    },
-    {
-      "type": "text",
-      "name": "ZipCode",
-      "title": "Zip Code",
-      "isRequired": true,
-      "startWithNewLine": false
-    }
-  ]
+  "homeAddress": {
+    "AddressLine1": "123 Main St",
+    "City": "Anytown",
+    // ...
+  }
 }
 ```
 
-## Answer
-In SurveyJS, composite questions allow you to create reusable custom question types by combining existing questions into a single component. To create an "address" composite question and enable customization of the `isRequired` property for nested fields, register the component using `ComponentCollection`. Add custom boolean properties (e.g., `requireAddressLine1`) to the composite type via `Serializer.addProperty`. These properties default to match the base `elementsJSON` and can be overridden in the survey JSON or Property Grid.
+To create a reusable "Address" composite question and make nested fields required dynamically, follow the steps below:
 
-Use callbacks like `onInit` to add properties, `onLoaded` to apply them initially, and `onPropertyChanged` to update dynamically when custom properties change.
+1. Register the component using the `ComponentCollection`.
+2. Configure nested fields in the `elementsJSON` array.
+3. Add custom Boolean properties (e.g., `requireAddressLine1`, `requireCity`) to control the `isRequired` property of each nested field. These properties can be overridden in the survey JSON schema or Property Grid. Use the `onInit` callback to add these properties.
+4. Apply the custom properties initially using the `onLoaded` callback.
+5. Use the `onPropertyChanged` callback to update the `isRequired` property of the nested fields dynamically when custom properties change.
+6. Add the composite question to your survey JSON schema and configure the custom properties as needed.
 
-### Step 1: Register the Composite Question
-Import necessary modules and register the "address" component with the provided `elementsJSON`. Define a function to apply the `isRequired` settings based on custom properties.
+## Code Sample
 
 ```typescript
 import { ComponentCollection, Serializer } from "survey-core";
@@ -65,10 +45,12 @@ function applyRequiredSettings(question) {
   panel.getQuestionByName("ZipCode").isRequired = question.requireZipCode;
 }
 
+// Step 1: Register the component
 ComponentCollection.Instance.add({
   name: "address",
   title: "Address",
   defaultQuestionTitle: "Enter your address:",
+  // Step 2: Configure nested fields
   elementsJSON: [
     { type: "text", name: "AddressLine1", title: "Street Address", isRequired: true },
     { type: "text", name: "AddressLine2", title: "Street Address 2", startWithNewLine: false },
@@ -76,20 +58,20 @@ ComponentCollection.Instance.add({
     { type: "text", name: "State", title: "State", isRequired: true, startWithNewLine: false },
     { type: "text", name: "ZipCode", title: "Zip Code", isRequired: true, startWithNewLine: false }
   ],
+  // Step 3: Add custom Boolean properties
   onInit() {
-    // Add custom properties for each nested field's isRequired (default matches elementsJSON)
     Serializer.addProperty("address", { name: "requireAddressLine1:boolean", default: true, category: "general" });
     Serializer.addProperty("address", { name: "requireAddressLine2:boolean", default: false, category: "general" });
     Serializer.addProperty("address", { name: "requireCity:boolean", default: true, category: "general" });
     Serializer.addProperty("address", { name: "requireState:boolean", default: true, category: "general" });
     Serializer.addProperty("address", { name: "requireZipCode:boolean", default: true, category: "general" });
   },
+  // Step 4: Apply the custom properties initially
   onLoaded(question) {
-    // Apply settings when the question is loaded
     applyRequiredSettings(question);
   },
+  // Step 5: Update the nested fields when custom properties change
   onPropertyChanged(question, propertyName, value) {
-    // Re-apply if a require* property changes
     if (propertyName.startsWith("require")) {
       applyRequiredSettings(question);
     }
@@ -97,8 +79,7 @@ ComponentCollection.Instance.add({
 });
 ```
 
-### Step 2: Use the Composite Question in Your Survey
-Once registered, add the "address" question to your survey JSON. Override custom properties as needed to change `isRequired` for nested fields.
+## Survey JSON Schema
 
 ```json
 {
@@ -107,33 +88,23 @@ Once registered, add the "address" question to your survey JSON. Override custom
       "type": "address",
       "name": "homeAddress",
       "title": "Home Address",
-      "requireAddressLine2": true,  // Make AddressLine2 required (overrides default false)
-      "requireState": false        // Make State optional (overrides default true)
+      "requireAddressLine2": true, // Make AddressLine2 required
+      "requireState": false        // Make State optional
     }
   ]
 }
 ```
 
-**Explanation**:
-- The composite question outputs an object with nested values, e.g., `{ "homeAddress": { "AddressLine1": "123 Main St", "City": "Anytown", ... } }`.
-- Custom properties appear in the Property Grid for editing.
-- The `applyRequiredSettings` function accesses nested questions via `contentPanel.getQuestionByName` and sets `isRequired` dynamically.
+## Learn More
 
-**Pros**: Reusable component; centralizes address logic; easy to customize required fields without duplicating JSON.  
-**Cons**: Requires custom code for registration; changes only apply at runtime/loading.
+- [Documentation: Composite Question Types](https://surveyjs.io/form-library/documentation/customize-question-types/create-composite-question-types)
+- [Documentation: Add Custom Properties to Question Types](https://surveyjs.io/form-library/documentation/customize-question-types/add-custom-properties-to-a-form)
 
-## Recommended Approach
-This method is ideal for forms needing standardized address inputs with flexible validation. Register the component once in your application code, then use it across surveys.
+<!-- ## Related Tags
 
-## Related Tags
 - surveyjs
 - composite-question
 - custom-properties
 - isRequired
 - survey-json
-- javascript
-
-## References
-- [SurveyJS Composite Question Types](https://surveyjs.io/form-library/documentation/customize-question-types/create-composite-question-types)
-- [SurveyJS Add Custom Properties](https://surveyjs.io/form-library/documentation/customize-question-types/add-custom-properties-to-a-form)
-- [SurveyJS Serializer API](https://surveyjs.io/form-library/documentation/customize-question-types/add-custom-properties-to-a-form)
+- javascript -->
