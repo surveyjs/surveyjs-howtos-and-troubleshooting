@@ -13,7 +13,7 @@ In SurveyJS Form Library, you can apply time limits to individual pages or the e
 3. Disable backward navigation by setting [`showPrevButton`](https://surveyjs.io/form-library/documentation/api-reference/survey-data-model#showPrevButton) to `false`.
 4. Hide the timer on untimed pages by calling the [`startTimer()`](https://surveyjs.io/form-library/documentation/api-reference/survey-data-model#startTimer) and [`stopTimer()`](https://surveyjs.io/form-library/documentation/api-reference/survey-data-model#stopTimer) method within the [`onStarted`](https://surveyjs.io/form-library/documentation/api-reference/survey-data-model#onStarted) and [`onCurrentPageChanged`](https://surveyjs.io/form-library/documentation/api-reference/survey-data-model#onCurrentPageChanged) event handlers.
 
-## Survey JSON Schema
+### Survey JSON Schema
 
 ```json
 {
@@ -66,7 +66,7 @@ In SurveyJS Form Library, you can apply time limits to individual pages or the e
 }
 ```
 
-## Code Sample
+### Code Sample
 
 ```js
 // ...

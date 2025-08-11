@@ -8,7 +8,7 @@ I want to create a multi-select matrix where each cell must be answered.
 
 In a [Multi-Select Matrix](https://surveyjs.io/form-library/examples/multi-select-matrix-question/), you can require all cells by setting the [`isRequired`](https://surveyjs.io/form-library/documentation/api-reference/multi-select-matrix-column-values#isRequired) property to true for each column.
 
-## Survey JSON Schema
+### Survey JSON Schema
 
 ```json
 {

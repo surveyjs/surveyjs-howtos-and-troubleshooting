@@ -15,7 +15,7 @@ Use the [`onQuestionAdded`](https://surveyjs.io/survey-creator/documentation/api
 3. **Make the `name` property read-only**\
 In the [`onPropertyGetReadOnly`](https://surveyjs.io/survey-creator/documentation/api-reference/survey-creator#onPropertyGetReadOnly) event handler, detect the `name` property and enable the `readOnly` flag for questions of the required type.
 
-## Code Sample
+### Code Sample
 
 ```js
 // Step 1: Disable the toolbox item when the survey loads
