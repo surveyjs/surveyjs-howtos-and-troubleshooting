@@ -21,21 +21,16 @@ Enable the [`isUnique`](https://surveyjs.io/form-library/documentation/api-refer
       "elements": [
         {
           "type": "matrixdropdown",
-          "name": "orders",
+          "name": "matrix-question-name",
           "columns": [
             {
-              "name": "phoneModel",
-              "title": "Phone Model",
+              "name": "matrix-column-name",
               "cellType": "dropdown",
-              "choices": [
-                { "text": "iPhone 15 Pro Max, 256GB", "value": "iPhone15ProMax-256", "price": 1199 },
-                { "text": "iPhone 15 Pro Max, 512GB", "value": "iPhone15ProMax-512", "price": 1399 },
-                // ...
-              ],
+              "choices": [ /** An array of choice options */ ],
               "isUnique": true
             },
           ],
-          // ...
+          "rows": [ /** An array of matrix rows */ ]
         }
       ]
     }
@@ -59,18 +54,11 @@ Handle the `SurveyModel`'s [`onPopupVisibleChanged`](https://surveyjs.io/form-li
           "columns": [
             {
               "name": "matrix-column-name",
-              "title": "Column Title",
               "cellType": "dropdown",              
-              "choices": [
-                "choice-value-1",
-                "choice-value-2"
-              ]
+              "choices": [ /** An array of choice options */ ]
             }
           ],
-          "rows": [
-            "row-1",
-            "row-2"
-          ]
+          "rows": [ /** An array of matrix rows */ ]
         }
       ]
     }
@@ -120,7 +108,7 @@ If you [lazy-load choices from a server](https://surveyjs.io/form-library/exampl
               "choicesLazyLoadEnabled": true
             }
           ],
-          "rows": [ /* ... */ ]
+          "rows": [ /** An array of matrix rows */ ]
         }
       ]
     }

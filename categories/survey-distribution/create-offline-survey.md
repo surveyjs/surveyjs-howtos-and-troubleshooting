@@ -11,7 +11,7 @@ Use the [SurveyJS PDF Generator](https://surveyjs.io/pdf-generator/documentation
 ```js
 import { SurveyPDF } from "survey-pdf";
 
-const surveyJson = { /* ... */ };
+const surveyJson = { /* Survey JSON schema */ };
 const surveyPdf = new SurveyPDF(surveyJson);
 surveyPdf.save();
 ```
