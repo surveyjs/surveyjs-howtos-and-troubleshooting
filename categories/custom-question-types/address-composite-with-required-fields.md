@@ -15,7 +15,7 @@ Composite questions output an object with nested values. For example:
   "homeAddress": {
     "AddressLine1": "123 Main St",
     "City": "Anytown",
-    // ...
+    // ... more nested question values
   }
 }
 ```
@@ -29,7 +29,7 @@ To create a reusable "Address" composite question and make nested fields require
 5. Use the `onPropertyChanged` callback to update the `isRequired` property of the nested fields dynamically when custom properties change.
 6. Add the composite question to your survey JSON schema and configure the custom properties as needed.
 
-## Code Sample
+### Code Sample
 
 ```typescript
 import { ComponentCollection, Serializer } from "survey-core";
@@ -79,7 +79,7 @@ ComponentCollection.Instance.add({
 });
 ```
 
-## Survey JSON Schema
+### Survey JSON Schema
 
 ```json
 {

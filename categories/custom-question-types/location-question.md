@@ -14,7 +14,7 @@ Follow these steps:
 2. Define the base question structure using the `questionJSON` object. For "Location", we'll use the [Multiple Textboxes](https://surveyjs.io/form-library/examples/multiple-text-box-question/) question type.
 3. Move the question to the desired toolbox category using the [`changeCategory()`](https://surveyjs.io/survey-creator/documentation/api-reference/questiontoolbox#changeCategory) method.
 
-## Code Sample
+### Code Sample
 
 ```typescript
 import { ComponentCollection } from "survey-core";
@@ -36,7 +36,7 @@ ComponentCollection.Instance.add({
   }
 });
 
-const creator = new SurveyCreatorModel({ /* ... */ });
+const creator = new SurveyCreatorModel();
 // Step 3: Move the question to the Text toolbox category
 creator.toolbox.changeCategory("location", "text");
 ```
