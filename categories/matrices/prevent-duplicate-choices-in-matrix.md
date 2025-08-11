@@ -51,7 +51,7 @@ Handle the `SurveyModel`'s [`onPopupVisibleChanged`](https://surveyjs.io/form-li
 {
   "pages": [
     {
-      "name": "page1",
+      "name": "page-name",
       "elements": [
         {
           "type": "matrixdropdown",
@@ -59,11 +59,18 @@ Handle the `SurveyModel`'s [`onPopupVisibleChanged`](https://surveyjs.io/form-li
           "columns": [
             {
               "name": "matrix-column-name",
-              "cellType": "dropdown",
-              "choices": [ /* ... */ ]
+              "title": "Column Title",
+              "cellType": "dropdown",              
+              "choices": [
+                "choice-value-1",
+                "choice-value-2"
+              ]
             }
           ],
-          "rows": [ /* ... */ ]
+          "rows": [
+            "row-1",
+            "row-2"
+          ]
         }
       ]
     }
