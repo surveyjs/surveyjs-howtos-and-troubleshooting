@@ -1,12 +1,15 @@
-# Make All Rows Required for a Multi-Select Matrix in SurveyJS
+# Make All Cells in a Multi-Select Matrix Required
 
 ## Problem
-How to create a multi-select matrix question where each row is required to be answered?
+
+I want to create a multi-select matrix where each cell must be answered.
 
 ## Solution
-To ensure that respondents answer all rows in a [Multi-Select Matrix](https://surveyjs.io/form-library/examples/questiontype-matrixdropdown/), enable the [`MatrixDropdownColumn.isRequired`](https://surveyjs.io/form-library/documentation/api-reference/multi-select-matrix-column-values#isRequired) option for each matrix column.
 
-## Code Sample
+In a [Multi-Select Matrix](https://surveyjs.io/form-library/examples/multi-select-matrix-question/), you can require all cells by setting the [`isRequired`](https://surveyjs.io/form-library/documentation/api-reference/multi-select-matrix-column-values#isRequired) property to true for each column.
+
+## Survey JSON Schema
+
 ```json
 {
   "pages": [
@@ -19,26 +22,26 @@ To ensure that respondents answer all rows in a [Multi-Select Matrix](https://su
           "title": "Please rate your satisfaction with the following aspects in each department:",
           "columns": [
             {
-              "name": "Staff Helpfulness",
+              "name": "staffHelpfulness",
               "title": "Staff Helpfulness",
               "cellType": "rating",
-              "isRequired": true,
               "rateType": "stars",
               "rateCount": 3,
               "rateMax": 3,
               "minRateDescription": "Very Poor",
-              "maxRateDescription": "Excellent"
+              "maxRateDescription": "Excellent",
+              "isRequired": true
             },
             {
-              "name": "Response Time",
+              "name": "responseTime",
               "title": "Response Time",
               "cellType": "rating",
-              "isRequired": true,
               "rateType": "stars",
               "rateCount": 3,
               "rateMax": 3,
               "minRateDescription": "Very Poor",
-              "maxRateDescription": "Excellent"
+              "maxRateDescription": "Excellent",
+              "isRequired": true
             }
           ],
           "rows": [
@@ -57,3 +60,8 @@ To ensure that respondents answer all rows in a [Multi-Select Matrix](https://su
   ]
 }
 ```
+
+## Learn More
+
+- [Multi-Select Matrix API Reference](https://surveyjs.io/form-library/documentation/api-reference/matrix-table-with-dropdown-list)
+- [Multi-Select Matrix Demo](https://surveyjs.io/form-library/examples/multi-select-matrix-question/)
