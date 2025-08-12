@@ -1,117 +1,133 @@
-# Copy Address Value When Checkbox Is Already Set in SurveyJS
+# Copy Address Value When Checkbox Is Already Selected
 
-## Question
-In a SurveyJS form, we use a `copyvalue` trigger to copy the "address" question value into "billing_address" when the "copy_address" boolean question is set to `true`. This works when toggling "copy_address," but if "copy_address" is already checked and the "address" value changes, the trigger doesn’t update "billing_address." How can I ensure the "billing_address" updates when "address" changes while "copy_address" is checked?
+## Problem
 
-### Original JSON
+In a SurveyJS form, I use a `copyvalue` trigger to copy the `Address` value into `BillingAddress` when the `CopyAddress` checkbox is selected. This works when toggling `CopyAddress`, but if `CopyAddress` is already `true` and `Address` changes, `BillingAddress` is not updated.
+
 ```json
 {
   "elements": [
-    { "type": "comment", "name": "address", "title": "Address", "isRequired": true },
-    { "type": "boolean", "name": "copy_address", "title": "Use the address for billing" },
-    { "type": "comment", "name": "billing_address", "title": "Billing Address" }
+    { "type": "comment", "name": "Address", "title": "Address", "isRequired": true },
+    { "type": "boolean", "name": "CopyAddress", "title": "Use the address for billing" },
+    { "type": "comment", "name": "BillingAddress", "title": "Billing Address" }
   ],
   "triggers": [
-    { "type": "copyvalue", "fromName": "address", "setToName": "billing_address", "expression": "{copy_address} = true" }
+    {
+      "type": "copyvalue",
+      "fromName": "Address",
+      "setToName": "BillingAddress",
+      "expression": "{CopyAddress} = true"
+    }
   ],
   "textUpdateMode": "onTyping"
 }
 ```
 
-## Answer
-The `copyvalue` trigger in SurveyJS copies the value from `fromName` to `setToName` when the `expression` evaluates to `true`. However, the trigger only runs when variables in the `expression` (e.g., `copy_address`) change, not when the `fromName` question (e.g., `address`) changes. Below are three solutions to ensure "billing_address" updates when "address" changes while "copy_address" is `true`.
+## Solution
 
-### Solution 1: Include "address" in Trigger Expression
-Modify the `copyvalue` trigger to include the `address` question in the `expression`. This ensures the trigger re-evaluates when `address` changes.
+In SurveyJS, the `copyvalue` trigger copies the value from `fromName` to `setToName` when the `expression` evaluates to `true`. However, the trigger only re-runs when variables in the `expression` (e.g., `CopyAddress`) change. In this case, Address isn't part of the expression, so changing it doesn't re-run the trigger. The following options ensure `BillingAddress` is updated whenever `Address` changes while `CopyAddress"` remains `true`.
 
-```json
-{
-  "triggers": [
-    {
-      "type": "copyvalue",
-      "fromName": "address",
-      "setToName": "billing_address",
-      "expression": "{copy_address} = true and {address} notempty"
-    }
-  ]
-}
-```
+### Option 1: Use `setValueExpression` Instead
 
-Since `address` is required (`isRequired: true`), the `notempty` condition is sufficient. To handle cases where `address` might be empty, use:
+Replace the survey-level trigger with the [`setValueIf`](https://surveyjs.io/form-library/documentation/api-reference/question#setValueIf) and [`setValueExpression`](https://surveyjs.io/form-library/documentation/api-reference/question#setValueExpression) properties on `BillingAddress` for a simpler, more maintainable setup:
 
 ```json
 {
-  "triggers": [
+  "elements": [
+    { "type": "comment", "name": "Address", "title": "Address", "isRequired": true },
+    { "type": "boolean", "name": "CopyAddress", "title": "Use the address for billing", "defaultValue": false },
     {
-      "type": "copyvalue",
-      "fromName": "address",
-      "setToName": "billing_address",
-      "expression": "{copy_address} = true and ({address} notempty or {address} empty)"
+      "type": "comment",
+      "name": "BillingAddress",
+      "title": "Billing Address",
+      "setValueIf": "{CopyAddress} = true",
+      "setValueExpression": "{Address}",
+      "enableIf": "{CopyAddress} = false"
     }
-  ]
+  ],
+  "textUpdateMode": "onTyping"
 }
 ```
 
-**Pros**: Simple, no code changes needed.  
-**Cons**: Less flexible for complex logic.
+**How it works:**
 
-### Solution 2: Extend Copy Value Trigger Behavior
-Customize the `SurveyTriggerCopyValue` class to make the trigger re-evaluate when the `fromName` question (e.g., `address`) changes. Register a custom serializer in your application.
+- `setValueIf` activates when `CopyAddress` is `true`.
+- `setValueExpression` copies the value of `Address` to `BillingAddress`.
+- [`enableIf`](https://surveyjs.io/form-library/documentation/api-reference/question#enableIf) disables the `BillingAddress` input when `CopyAddress` is `true` for better UX.
+- `defaultValue: false` on `CopyAddress` avoids undefined states, allowing `enableIf: "{CopyAddress} = false"`.
 
-```typescript
+### Option 2: Include `Address` in the Trigger Expression
+
+Make the trigger also depend on `Address` so that it re-evaluates when that value changes:
+
+```json
+"expression": "{CopyAddress} = true and {Address} notempty"
+```
+
+Full example:
+
+
+```json
+{
+  "elements": [
+    { "type": "comment", "name": "Address", "title": "Address", "isRequired": true },
+    { "type": "boolean", "name": "CopyAddress", "title": "Use the address for billing" },
+    { "type": "comment", "name": "BillingAddress", "title": "Billing Address" }
+  ],
+  "triggers": [
+    {
+      "type": "copyvalue",
+      "fromName": "Address",
+      "setToName": "BillingAddress",
+      "expression": "{CopyAddress} = true and {Address} notempty"
+    }
+  ],
+  "textUpdateMode": "onTyping"
+}
+```
+
+If `Address` can be empty, use:
+
+```json
+"expression": "{CopyAddress} = true and ({Address} notempty or {Address} empty)"
+```
+
+### Option 3: Extend `copyvalue` Trigger Behavior
+
+Create a custom trigger class that also reacts when the `fromName` question changes:
+
+```js
 import { Serializer, SurveyTriggerCopyValue } from "survey-core";
 
 class SurveyTriggerCopyValueEx extends SurveyTriggerCopyValue {
   protected getUsedVariables(): string[] {
     const res = super.getUsedVariables();
-    res.push(this.fromName); // Include fromName in trigger evaluation
+    res.push(this.fromName); // Include the source question in trigger evaluation
     return res;
   }
 }
 
-// Replace default copyvalue trigger creator
+// Replace the default `copyvalue` trigger with the custom one
 const copyClassInfo = Serializer.findClass("copyvaluetrigger");
 copyClassInfo.creator = () => new SurveyTriggerCopyValueEx();
 ```
 
-**Pros**: Reusable across all `copyvalue` triggers in your app.  
-**Cons**: Requires custom code, which may not suit non-developers.
+This approach preserves the trigger-based workflow but fixes the limitation by making `Address` part of the re-evaluation process automatically.
 
-### Solution 3: Use setValueExpression (Recommended)
-Instead of a survey-level `copyvalue` trigger, use the question-level `setValueIf` and `setValueExpression` properties on `billing_address`. This approach is simpler, more maintainable, and recommended by SurveyJS.
+### When to Use Each Option
 
-```json
-{
-  "elements": [
-    { "type": "comment", "name": "address", "title": "Address", "isRequired": true },
-    { "type": "boolean", "name": "copy_address", "title": "Use the address for billing", "defaultValue": false },
-    {
-      "type": "comment",
-      "name": "billing_address",
-      "title": "Billing Address",
-      "setValueIf": "{copy_address} = true",
-      "setValueExpression": "{address}",
-      "enableIf": "{copy_address} = false"
-    }
-  ],
-  "textUpdateMode": "onTyping"
-}
-```
+- **Option 1 (`setValueExpression`)**\
+Best for new forms or when you control the survey JSON. It's concise, reactive to all changes, and requires no custom code.
 
-- `setValueIf`: Activates when `copy_address` is `true`.
-- `setValueExpression`: Copies the value of `address` to `billing_address`.
-- `enableIf`: Disables the `billing_address` input when `copy_address` is `true` for better UX.
-- `defaultValue: false` on `copy_address` avoids undefined states, allowing `enableIf: "{copy_address} = false"`.
+- **Option 2 (expression update)**\
+Easiest fix if you want to keep using triggers without changing question definitions. Works well for small adjustments.
 
-**Pros**: Clean, question-level solution; improves UX with `enableIf`; no custom code needed.  
-**Cons**: Requires SurveyJS version supporting `setValueExpression`.
+- **Option 3 (custom trigger)**\
+Ideal if you have multiple `copyvalue` triggers affected by the same limitation and want a global fix without rewriting each expression.
 
-## Recommended Approach
-Use **Solution 3** (`setValueExpression`) for its simplicity, maintainability, and better user experience. It avoids survey-level triggers and is easier to manage in SurveyJS Creator.
-
-## Related Tags
+<!-- ## Related Tags
 - surveyjs
 - copyvalue
 - setValueExpression
 - survey-json
-- javascript
+- javascript -->
