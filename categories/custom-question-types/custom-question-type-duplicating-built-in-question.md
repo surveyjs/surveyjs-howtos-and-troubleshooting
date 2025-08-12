@@ -17,7 +17,7 @@ To create a custom question type that replicates the behavior and rendering of a
 
 This approach lets you use your custom question type identifier (e.g., `"custom-matrix"`) in survey JSON schema while retaining the original Dynamic Matrix's behavior and look.
 
-## Code Sample
+### Code Sample
 
 ```js
 import { settings as creatorSettings } from "survey-creator-core";
