@@ -26,11 +26,11 @@ Enable the [`isUnique`](https://surveyjs.io/form-library/documentation/api-refer
             {
               "name": "matrix-column-name",
               "cellType": "dropdown",
-              "choices": [ /** An array of choice options */ ],
+              "choices": [ /* An array of choice options */ ],
               "isUnique": true
             },
           ],
-          "rows": [ /** An array of matrix rows */ ]
+          "rows": [ /* An array of matrix rows */ ]
         }
       ]
     }
@@ -55,10 +55,10 @@ Handle the `SurveyModel`'s [`onPopupVisibleChanged`](https://surveyjs.io/form-li
             {
               "name": "matrix-column-name",
               "cellType": "dropdown",              
-              "choices": [ /** An array of choice options */ ]
+              "choices": [ /* An array of choice options */ ]
             }
           ],
-          "rows": [ /** An array of matrix rows */ ]
+          "rows": [ /* An array of matrix rows */ ]
         }
       ]
     }
@@ -108,7 +108,7 @@ If you [lazy-load choices from a server](https://surveyjs.io/form-library/exampl
               "choicesLazyLoadEnabled": true
             }
           ],
-          "rows": [ /** An array of matrix rows */ ]
+          "rows": [ /* An array of matrix rows */ ]
         }
       ]
     }
