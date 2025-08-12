@@ -6,7 +6,7 @@ How to create a specialized question type that copies the functionality and rend
 ## Solution
 To create a custom question type that replicates the functionality and rendering of a Dynamic Matrix question, you need to define a custom question model that extends the [`QuestionMatrixDynamicModel`](https://surveyjs.io/form-library/documentation/api-reference/dynamic-matrix-table-question-model) and register it with the `ElementFactory`. Use the `Serializer` to add the custom type and register the question with both the survey core and the UI framework (e.g., React).
 
-This allows you to programmatically access a question using a unique type identifier and persist the Dynamic Matrix's behavior and appearance.
+This allows you to programmatically access a question using the custom `"custom-matrix"` type identifier and persist the Dynamic Matrix's behavior and appearance.
 
 ## Code Sample
 ```javascriptreact
