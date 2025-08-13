@@ -10,7 +10,7 @@ This happens because the survey is embedded in a scrollable parent container tha
 
 To fix this, handle the `SurveyModel`'s [`onPopupVisibleChanged`](https://surveyjs.io/form-library/documentation/api-reference/survey-data-model#onPopupVisibleChanged) event to get the popup model. Then, subscribe to the parent container's scroll event and hide the menu whenever scrolling occurs.
 
-## Code Sample
+### Code Sample
 
 ```javascript
 import { Model } from "survey-core";
