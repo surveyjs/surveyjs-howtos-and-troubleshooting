@@ -1,41 +1,29 @@
-# Display Only One Translation Tab with a Single Language in SurveyJS Creator
+# Show Only the Translation Tab with a Single Language in SurveyJS Creator
 
 ## Problem
-You need to configure SurveyJS Creator to show only one translation tab for a specific language (e.g., Italian) in the user interface, hiding other tabs like Designer, Logic, Preview, and JSON Editor. Additionally, since multiple translation sessions in different languages may occur simultaneously, changes must be applied to the latest version of the survey JSON retrieved from the server to avoid conflicts.
+
+I want to configure SurveyJS Creator to display only the Translation tab for a specific language (e.g., Italian), while hiding other tabs (Designer, Logic, Preview, and JSON Editor). Since multiple translators may work on different languages at the same time, any changes must always be applied to the latest survey JSON schema fetched from the server to prevent conflicts.
 
 ## Solution
-To display only one translation tab with a single language in SurveyJS Creator, disable all other tabs (Designer, Logic, Preview, JSON Editor) by setting their respective `show*Tab` properties to `false` and enable the translation tab with `showTranslationTab: true`. Use the `setVisibleLocales` method of the translation plugin to restrict the translation tab to a single language (e.g., `["it"]` for Italian). To handle concurrent translation sessions, fetch the latest survey JSON from the server before applying changes, update the translated strings, and save the updated JSON back to the server. This ensures translations are applied to the most recent survey version.
 
-The following code example, based on a React and TypeScript implementation, demonstrates how to configure SurveyJS Creator to show a single language in the translation tab and manage server-side JSON updates.
+To configure SurveyJS Creator for this scenario, follow the steps below:
 
-## [Live Example](https://plnkr.co/edit/EdAKE6J0Svjxr1Ty)
+1. **Enable only the Translation tab**  
+  Set all [`show_TabName_Tab`](https://surveyjs.io/survey-creator/documentation/api-reference/survey-creator#showDesignerTab) properties to `false`, except for [`showTranslationTab`](https://surveyjs.io/survey-creator/documentation/api-reference/survey-creator#showTranslationTab), which should be `true`.
 
-## Code Example
+1. **Limit available languages to one**  
+  To prevent adding unsupported locales, assign the allowed codes to `surveyLocalization.supportedLocales`. Then, limit visible locales in the Translation tab by calling its `setVisibleLocales` method (for example, `[ "it" ]` for Italian).
 
-### index.html
-```html
-<!DOCTYPE html>
-<html>
-<head>
-  <title>SurveyJS Creator with Single Language Translation</title>
-  <meta charset="utf-8" />
-  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-  <script src="https://unpkg.com/survey-core@1.11.6/survey.core.min.js"></script>
-  <script src="https://unpkg.com/survey-creator-core@1.11.6/survey-creator-core.min.js"></script>
-  <link href="https://unpkg.com/survey-core@1.11.6/defaultV2.min.css" rel="stylesheet" />
-  <link href="https://unpkg.com/survey-creator-core@1.11.6/survey-creator-core.min.css" rel="stylesheet" />
-</head>
-<body>
-  <div id="surveyCreatorContainer"></div>
-  <script src="index.js"></script>
-</body>
-</html>
-```
+1. **Handle concurrent sessions safely**  
+  Always fetch the most recent survey JSON schema from the server before applying translations. Update the translated strings in that version, then save the updated JSON back to the server. See the `saveSurveyFunc` implementation below.
 
-### index.js
-```typescript
-const localeToTranslate = "it";
+### Code Example
+
+```js
+import { SurveyCreatorModel } from "survey-creator-core";
+import { Action, surveyLocalization } from "survey-core";
+
+const targetLocale = "it";
 
 const surveyJSON = {
   elements: [
@@ -50,6 +38,15 @@ const surveyJSON = {
   ]
 };
 
+// Step 1: Enable only the Translation tab
+const creator = new SurveyCreatorModel({
+  showDesignerTab: false,
+  showLogicTab: false,
+  showPreviewTab: false,
+  showJSONEditorTab: false,
+  showTranslationTab: true
+});
+
 function loadJSONFromServer(creator, callback) {
   setTimeout(() => {
     creator.JSON = surveyJSON; // Simulate server fetch
@@ -57,13 +54,15 @@ function loadJSONFromServer(creator, callback) {
   }, 300);
 }
 
-function getTranslation(creator) {
+function getTranslationTab(creator) {
   return creator.getPlugin("translation").model;
 }
 
+// Step 2: Limit available languages to one
+surveyLocalization.supportedLocales = [targetLocale];
 function setVisibleLocales(creator) {
-  const translation = getTranslation(creator);
-  translation.setVisibleLocales([localeToTranslate]);
+  const translation = getTranslationTab(creator);
+  translation.setVisibleLocales([targetLocale]);
 }
 
 function getTranslationObjectsByGroup(hash, group, isObj) {
@@ -72,13 +71,13 @@ function getTranslationObjectsByGroup(hash, group, isObj) {
       getTranslationObjectsByGroup(hash, item, isObj);
     } else {
       const key = group.fullName + "." + item.name;
-      hash[key] = isObj ? item : item.getLocText(localeToTranslate);
+      hash[key] = isObj ? item : item.getLocText(targetLocale);
     }
   });
 }
 
 function getTranslatedObjects(creator, isObj) {
-  const translation = getTranslation(creator);
+  const translation = getTranslationTab(creator);
   const hash = {};
   getTranslationObjectsByGroup(hash, translation.root, isObj);
   return hash;
@@ -93,63 +92,37 @@ function updateTranslatedStrings(creator, translatedHash) {
   for (let key in hash) {
     const str = translatedHash[key];
     if (str) {
-      hash[key].setLocText(localeToTranslate, str);
+      hash[key].setLocText(targetLocale, str);
     }
   }
 }
 
-function SurveyCreatorRenderComponent() {
-  const creator = new SurveyCreator.SurveyCreator({
-    showDesignerTab: false,
-    showLogicTab: false,
-    showPreviewTab: false,
-    showJSONEditorTab: false,
-    showTranslationTab: true
-  });
+// A toolbar button that saves the survey JSON
+creator.toolbar.actions.push(new Action({
+  id: "svd-save-translation",
+  iconName: "icon-save",
+  iconSize: "auto",
+  action: () => creator.saveSurvey(),
+  active: false,
+  locTitleName: "ed.saveSurvey",
+  locTooltipName: "ed.saveSurveyTooltip",
+  showTitle: false
+}));
 
-  // Add a save button to the translation tab toolbar
-  creator.toolbar.actions.push(new Survey.Action({
-    id: "svd-save-translation",
-    iconName: "icon-save",
-    iconSize: "auto",
-    action: () => creator.saveSurvey(),
-    active: false,
-    locTitleName: "ed.saveSurvey",
-    locTooltipName: "ed.saveSurveyTooltip",
-    showTitle: false
-  }));
-
-  creator.saveSurveyFunc = (saveNo, callback) => {
-    const translatedHash = getTranslatedStrings(creator);
-    // Fetch the latest JSON and apply translation changes
-    loadJSONFromServer(creator, () => {
-      setVisibleLocales(creator);
-      updateTranslatedStrings(creator, translatedHash);
-      console.log('Updated Survey JSON:', creator.JSON); // Save to server here
-      callback(saveNo, true);
-    });
-  };
-
+// Step 3: Handle concurrent sessions safely
+creator.saveSurveyFunc = (saveNo, callback) => {
+  const translatedHash = getTranslatedStrings(creator);
   loadJSONFromServer(creator, () => {
     setVisibleLocales(creator);
+    updateTranslatedStrings(creator, translatedHash);
+    console.log('Updated Survey JSON:', creator.JSON); // Save `creator.JSON` to server here
+    callback(saveNo, true);
   });
+};
 
-  return (<SurveyCreator.SurveyCreatorComponent creator={creator} />);
-}
-
-const root = ReactDOM.createRoot(document.getElementById("surveyCreatorContainer"));
-root.render(<SurveyCreatorRenderComponent />);
+loadJSONFromServer(creator, () => {
+  setVisibleLocales(creator);
+});
 ```
 
-### Notes
-- **Dependencies**: Include `react`, `react-dom`, `survey-core`, and `survey-creator-core` with their CSS files:
-  ```bash
-  npm install react react-dom survey-core survey-creator-core
-  ```
-- **Single Language Translation**: The `setVisibleLocales([localeToTranslate])` method restricts the translation tab to a single language (e.g., Italian, `"it"`).
-- **Server-Side JSON Handling**: The `loadJSONFromServer` function simulates fetching the latest survey JSON. In a real application, replace it with an API call (e.g., using `axios`) to fetch and save JSON to the server.
-- **Translation Management**: The `getTranslatedStrings` and `updateTranslatedStrings` functions manage translation strings, ensuring changes are applied to the latest JSON version.
-- **Save Button**: A custom save button is added to the toolbar to trigger `saveSurvey`, which fetches the latest JSON, applies translations, and saves the result.
-- **Plunker Reference**: For a working example, see the [Plunker example](https://plnkr.co/edit/EdAKE6J0Svjxr1Ty).
-- **Customization**: Adjust `localeToTranslate` to the desired language code. Add error handling or validation in `loadJSONFromServer` for robust server communication.
-- **Concurrent Sessions**: Fetching the latest JSON before saving ensures translations are applied to the most recent survey version, reducing conflicts.
+[View Live Example](https://plnkr.co/edit/MN3X8OMH13NmrU30)
