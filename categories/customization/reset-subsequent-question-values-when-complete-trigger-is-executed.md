@@ -1,4 +1,4 @@
-# How to Clear all question values on pages which go after the page on which the survey was submitted by the Complete Trigger
+# How to Clear All Question Values on Pages Which go After the Page on which the Survey was submitted by the Complete Trigger
 
 ## Problem
 When navigating back to a previous page in a multi-page survey and changing an answer that triggers survey completion via the Complete trigger (e.g., setting `continue` to `false`), the values of subsequent questions (e.g., Question 2 and beyond) are not cleared. This is problematic in surveys with many questions (e.g., 100 questions), as users expect all subsequent question values to be reset upon survey completion.
