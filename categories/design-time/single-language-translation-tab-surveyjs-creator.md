@@ -8,7 +8,7 @@ To display only one translation tab with a single language in SurveyJS Creator, 
 
 The following code example, based on a React and TypeScript implementation, demonstrates how to configure SurveyJS Creator to show a single language in the translation tab and manage server-side JSON updates.
 
-## [Living Example](https://plnkr.co/edit/EdAKE6J0Svjxr1Ty)
+## [Live Example](https://plnkr.co/edit/EdAKE6J0Svjxr1Ty)
 
 ## Code Example
 
