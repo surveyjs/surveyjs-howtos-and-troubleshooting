@@ -10,7 +10,7 @@ To number elements inside a composite question, implement the question's [`onCre
 
 - `"recursive"` - Continues numbering with a hierarchical pattern.
 - `"onpanel"` - Restarts numbering within this composite element.
-- `"default"` - Inherit that numbering pattern from a higher-level survey element.
+- `"default"` - Inherits the numbering pattern from a higher-level survey element.
 
 ### Code Sample
 
