@@ -9,8 +9,7 @@ I created a [composite question type](https://surveyjs.io/form-library/documenta
 To number elements inside a composite question, implement the question's [`onCreated`](https://surveyjs.io/form-library/documentation/api-reference/icustomquestiontypeconfiguration#onCreated) function. Within it, use the `contentPanel` property to access the panel that contains nested elements and set its `showQuestionNumbers` property to one of the following values:
 
 - `"recursive"` - Continues numbering with a hierarchical pattern.
-- `"onpanel"` - Restarts numbering within this panel.
-- `"default"` - Inherit that numbering pattern from a higher-level survey element.
+- `"onpanel"` - Restarts numbering within this composite element.
 
 ### Code Sample
 
@@ -68,7 +67,7 @@ ComponentCollection.Instance.add({
     },
   ],
   onCreated: (question) => {
-    question.contentPanel.showQuestionNumbers = "recursive"; // or "default" | "onpanel"
+    question.contentPanel.showQuestionNumbers = "recursive"; // or "onpanel"
   }
 });
 ```
