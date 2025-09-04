@@ -23,10 +23,10 @@ Composite questions output an object with nested values. For example:
 To create a reusable "Address" composite question and make nested fields required dynamically, follow the steps below:
 
 1. Register the component using the `ComponentCollection`.
-2. Configure nested fields in the `elementsJSON` array.
-3. Add custom Boolean properties (e.g., `requireAddressLine1`, `requireCity`) to control the `isRequired` property of each nested field. These properties can be overridden in the survey JSON schema or Property Grid. Use the `onInit` callback to add these properties.
-4. Apply the custom properties initially using the `onLoaded` callback.
-5. Use the `onPropertyChanged` callback to update the `isRequired` property of the nested fields dynamically when custom properties change.
+2. Configure nested fields in the [`elementsJSON`](https://surveyjs.io/form-library/documentation/api-reference/icustomquestiontypeconfiguration#elementsJSON) array.
+3. Add custom Boolean properties (e.g., `requireAddressLine1`, `requireCity`) to control the `isRequired` property of each nested field. These properties can be overridden in the survey JSON schema or Property Grid. Use the [`onInit`](https://surveyjs.io/form-library/documentation/api-reference/icustomquestiontypeconfiguration#onInit) callback to add these properties.
+4. Apply the custom properties initially using the [`onLoaded`](https://surveyjs.io/form-library/documentation/api-reference/icustomquestiontypeconfiguration#onLoaded) callback.
+5. Use the [`onPropertyChanged`](https://surveyjs.io/form-library/documentation/api-reference/icustomquestiontypeconfiguration#onPropertyChanged) callback to update the `isRequired` property of the nested fields dynamically when custom properties change.
 6. Add the composite question to your survey JSON schema and configure the custom properties as needed.
 
 ### Code Sample
