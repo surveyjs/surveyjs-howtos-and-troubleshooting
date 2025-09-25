@@ -14,7 +14,7 @@ The "None" and "Other" options are controlled by the [`showNoneItem`](https://su
 import { Serializer } from "survey-core";
 
 const hiddenProps = [ "showNoneItem", "showOtherItem" ];
-hiddensProp.forEach((prop) => {
+hiddenProps.forEach((prop) => {
   Serializer.getProperty("selectbase", prop).visible = false;
 });
 // ...
