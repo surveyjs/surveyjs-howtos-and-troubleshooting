@@ -155,4 +155,4 @@ This JSON schema defines a survey for employees to select movie screening dates.
 
 ## Learn More
 - SurveyJS demos: [Implement a Custom Data Visualizer](https://surveyjs.io/dashboard/examples/custom-survey-data-visualizer/).
-- Explore multiwinner voting algorithms for deeper understanding: [Chamberlin–Courant](https://en.wikipedia.org/wiki/Chamberlin%E2%80%93Courant_voting), [Proportional Approval Voting](https://en.wikipedia.org/wiki/Proportional_approval_voting).
+- Explore multiwinner voting algorithms for deeper understanding: [Multiwinner Voting](https://en.wikipedia.org/wiki/Multiwinner_voting).
