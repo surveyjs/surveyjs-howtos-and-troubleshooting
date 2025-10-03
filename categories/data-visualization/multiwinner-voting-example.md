@@ -153,6 +153,8 @@ This JSON schema defines a survey for employees to select movie screening dates.
 }
 ```
 
+![Multiwinner Voting Visualizaation](./multiwinner-voting.png)
+
 ## Learn More
 - SurveyJS demos: [Implement a Custom Data Visualizer](https://surveyjs.io/dashboard/examples/custom-survey-data-visualizer/).
 - Explore multiwinner voting algorithms for deeper understanding: [Multiwinner Voting](https://en.wikipedia.org/wiki/Multiwinner_voting).
