@@ -1,29 +1,125 @@
-# Multiwinner Voting Example
+# Multiwinner Voting Example Using SurveyJS Dashboard
 
 ## Problem
-When organizing an event like a company movie night, the venue may not accommodate all employees at once. The goal is to select multiple dates (e.g., two evenings) to maximize the number of employees who can attend at least one screening. Standard Approval Voting (AV) selects the most popular dates, but this may favor the same group of employees for both dates, leaving others uncovered. For example, both chosen dates might suit only 40% of employees, missing broader coverage.
+
+When organizing an event like a company movie night, the venue may not accommodate all employees at once. The goal is to select multiple dates to maximize the number of employees who can attend at least one screening. Standard Approval Voting (AV) simply picks the most popular dates, but this may favor the same group of employees across all dates, leaving many unrepresented. For example, both chosen dates might suit only 40% of employees, with no additional people covered.
 
 ## Solution
-Multiwinner Voting Rules address this by optimizing date selection to cover more unique employees. Key features:
 
-- **Input**: Approval ballots (checkboxes) where employees mark all suitable dates.
-- **Committee Size**: Fixed number of dates (e.g., 2). Organizers can adjust this (e.g., 2 or 3 dates), and the dashboard recalculates results.
-- **Algorithms**:
-  - **Approval Voting (AV)**: Selects dates with the highest number of votes.
-  - **Chamberlin–Courant (CC)**: Maximizes unique employee coverage.
-  - **Proportional Approval Voting (PAV)**: Balances coverage and rewards employees available for multiple dates.
-- **Output**: One optimal set of dates or multiple top sets if many combinations exist.
+Multiwinner Voting helps solve this problem by selecting dates that maximize unique employee coverage. The idea is to distribute available dates, so that more employees get a chance to attend at least one screening.
 
-**Decision Guide**:
-- Use AV for simple popularity-based selection.
-- Use CC for maximum unique employee coverage.
-- Use PAV to account for employees with multiple available dates.
+The process works as follows:
+
+1. Organizers select possible dates.
+2. Employees mark all dates they can attend (via checkbox ballots).
+3. Dates are evaluated using one or more multiwinner voting algorithms:
+   - Approval Voting (AV) - Selects the dates with the most total votes.
+   - Chamberlin–Courant (CC) - Maximizes unique employee coverage.
+   - Proportional Approval Voting (PAV) - Balances between overall coverage and rewarding employees who are flexible across multiple dates.
+4. Organizers then choose the approach that best fits their goal:
+   - AV for pure popularity.
+   - CC for maximum unique coverage.
+   - PAV to balance both.
+
+To compute the results and visualize them, you can implement a custom data visualizer for SurveyJS Dashboard.
+
+![Multiwinner Voting Visualization](./multiwinner-voting.png)
 
 ### Code Sample
-Below is a custom visualizer for SurveyJS to display voting results using AV, CC, and PAV algorithms.
+
+#### Helper Functions
+
+The following helper functions implement three voting algorithms: AV, CC, and PAV.
 
 ```javascript
-//votingAlgorythmVisualizer.js
+// multiwinnerVotingHelper.js
+
+// AV: Top k most approved dates
+export function computeAV(data, k) {
+  const counts = {};
+  data.forEach((d) => {
+    d.availableDates.forEach((v) => {
+      counts[v] = (counts[v] || 0) + 1;
+    });
+  });
+  return Object.entries(counts)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, k)
+    .map((e) => e[0]);
+}
+
+// CC: Maximize coverage of unique employees
+export function computeCC(data, k) {
+  const candidates = Array.from(new Set(data.flatMap((d) => d.availableDates)));
+  let bestSet = [];
+  let maxCoverage = -1;
+
+  // Generate all combinations of k dates
+  function combinations(arr, k) {
+    if (k === 0) return [[]];
+    if (arr.length < k) return [];
+    const [first, ...rest] = arr;
+    const withFirst = combinations(rest, k - 1).map((c) => [first, ...c]);
+    const withoutFirst = combinations(rest, k);
+    return withFirst.concat(withoutFirst);
+  }
+
+  combinations(candidates, k).forEach((combo) => {
+    const covered = new Set();
+    data.forEach((d) => {
+      if (d.availableDates.some((v) => combo.includes(v))) {
+        covered.add(d);
+      }
+    });
+    if (covered.size > maxCoverage) {
+      maxCoverage = covered.size;
+      bestSet = combo;
+    }
+  });
+
+  return bestSet;
+}
+
+// PAV: Weighted approval voting
+export function computePAV(data, k) {
+  const candidates = Array.from(new Set(data.flatMap((d) => d.availableDates)));
+  let bestSet = [];
+  let maxScore = -1;
+
+  function combinations(arr, k) {
+    if (k === 0) return [[]];
+    if (arr.length < k) return [];
+    const [first, ...rest] = arr;
+    const withFirst = combinations(rest, k - 1).map((c) => [first, ...c]);
+    const withoutFirst = combinations(rest, k);
+    return withFirst.concat(withoutFirst);
+  }
+
+  combinations(candidates, k).forEach((combo) => {
+    let score = 0;
+    data.forEach((d) => {
+      const count = d.availableDates.filter((v) => combo.includes(v)).length;
+      // add 1 + 1/2 + 1/3 ... for multiple covered dates
+      for (let i = 1; i <= count; i++) {
+        score += 1 / i;
+      }
+    });
+    if (score > maxScore) {
+      maxScore = score;
+      bestSet = combo;
+    }
+  });
+
+  return bestSet;
+}
+```
+
+#### Custom Data Visualizer
+
+This visualizer compares all three algorithms and displays selected dates with corresponding employee coverage.
+
+```javascript
+// votingAlgorithmVisualizer.js
 import {
   VisualizerBase,
   VisualizationManager,
@@ -125,7 +221,8 @@ localization.locales["en"]["visualizer_voting-algorithm"] =
 ```
 
 ### Survey JSON Schema
-This JSON schema defines a survey for employees to select movie screening dates.
+
+Below is the survey JSON schema used in this example:
 
 ```json
 {
@@ -141,10 +238,10 @@ This JSON schema defines a survey for employees to select movie screening dates.
           "title": "Which dates are you available to attend?",
           "isRequired": true,
           "choices": [
-            "Friday, Oct 10",
-            "Saturday, Oct 11",
-            "Friday, Oct 17",
-            "Saturday, Oct 18"
+            { "value": "fri_10", "text": "Friday, Oct 10" },
+            { "value": "sat_11", "text": "Saturday, Oct 11" },
+            { "value": "fri_17", "text": "Friday, Oct 17" },
+            { "value": "sat_18", "text": "Saturday, Oct 18" },
           ]
         }
       ]
@@ -153,8 +250,9 @@ This JSON schema defines a survey for employees to select movie screening dates.
 }
 ```
 
-![Multiwinner Voting Visualizaation](./multiwinner-voting.png)
+[Open in CodeSandbox](https://codesandbox.io/p/sandbox/surveyjs-dashboard-multiwinner-voting-example-forked-4pllmn)
 
 ## Learn More
-- SurveyJS demos: [Implement a Custom Data Visualizer](https://surveyjs.io/dashboard/examples/custom-survey-data-visualizer/).
-- Explore multiwinner voting algorithms for deeper understanding: [Multiwinner Voting](https://en.wikipedia.org/wiki/Multiwinner_voting).
+
+- [Implement a Custom Data Visualizer](https://surveyjs.io/dashboard/examples/custom-survey-data-visualizer/)
+- [Multiwinner Voting (Wikipedia)](https://en.wikipedia.org/wiki/Multiwinner_voting)
