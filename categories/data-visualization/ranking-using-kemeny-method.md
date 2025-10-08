@@ -1,34 +1,39 @@
-# Kemeny Rule
+# Ranking Using the Kemeny Method in SurveyJS Dashboard
 
 ## Problem
-When individuals rank options (e.g., restaurants, candidates, or dates) in order of preference, combining these rankings into a single consensus sequence that best reflects the group's preferences is challenging. The goal is to minimize conflicts between individual rankings and the final order, where a conflict occurs if the final order ranks option A above B, but an individual prefers B above A.
+
+When participants rank a set of options (for example, restaurants, candidates, or event dates), combining these rankings into a single group consensus can be difficult. The goal is to find an ordering that best reflects the collective preferences while minimizing disagreements. A disagreement (or conflict) occurs when the final ranking places option A above option B, but an individual prefers B over A.
 
 ## Solution
-The Kemeny Rule aggregates ranked votes to produce a single ordered sequence that minimizes the total number of conflicts with individual preferences. Key features:
 
-- **Input**: Each participant ranks options from most to least preferred.
-- **Process**: The algorithm evaluates all possible permutations of options to find the one that maximizes agreement with individual rankings.
-- **Output**: A consensus ranking (e.g., A → B → C → D) that best represents the group's preferences.
-- **Benefit**: The method prioritizes options ranked higher by more people, minimizing overall disagreement.
+The Kemeny method (also known as the Kemeny-Young rule, VoteFair popularity ranking, or maximum likelihood method) produces a consensus ranking that minimizes the total number of pairwise conflicts with individual preferences. In essence, it finds the order that most participants can agree on.
+
+The method works as follows:
+
+1. Each participant ranks the available options from most to least preferred.
+2. The algorithm evaluates all possible orderings and identifies the one with the fewest pairwise conflicts compared to all individual rankings.
+3. The resulting sequence represents the group’s collective preference.
 
 **Example**:
+
 - Participant 1: A → B → C → D
 - Participant 2: B → A → D → C
 - Participant 3: A → C → B → D
-- Kemeny Result: A → B → C → D (minimizes conflicts across all rankings).
+- Kemeny result: A → B → C → D (minimizes conflicts across all rankings)
+
+To calculate and display Kemeny results, you can implement a custom data visualizer for SurveyJS Dashboard.
+
+![Kemeny method visualization using SurveyJS Dashboard](./ranking-using-kemeny-method.png)
 
 ### Code Sample
-Below is a custom visualizer for SurveyJS to display the Kemeny consensus ranking.
 
-```javascript
-import {
-  VisualizerBase,
-  VisualizationManager,
-  localization,
-} from "survey-analytics";
+#### Helper Function
 
-// Works on small datasets (4-5 responses)
-function computeKemenyRanking(data) {
+The following helper functions compute the consensus ranking using the Kemeny method:
+
+```js
+// kemenyRankingHelper.js
+export function computeKemenyRanking(data) {
   const venues = ["italian", "sushi", "burger", "vegan"];
 
   function allPermutations(arr) {
@@ -70,6 +75,21 @@ function computeKemenyRanking(data) {
 
   return bestPerm;
 }
+```
+
+
+#### Custom Data Visualizer
+
+This visualizer displays the consensus ranking computed by the Kemeny method.
+
+```javascript
+// kemenyRankingVisualizer.js
+import {
+  VisualizerBase,
+  VisualizationManager,
+  localization,
+} from "survey-analytics";
+import { computeKemenyRanking } from "./kemenyRankingHelper.js";
 
 function KemenyVisualizer(question, data, options) {
   function renderContent(container, visualizer) {
@@ -118,12 +138,13 @@ function KemenyVisualizer(question, data, options) {
 
 VisualizationManager.registerVisualizer("ranking", KemenyVisualizer, 0);
 
-localization.locales["en"]["visualizer_kemeny-visualizer"] =
-  "Kemeny Consensus Table";
+localization.locales["en"]["visualizer_kemeny-visualizer"] ="Kemeny Consensus Table";
+localization.locales["en"]["visualizer_ranking"] = "Chart";
 ```
 
 ### Survey JSON Schema
-This JSON schema defines a survey for ranking lunch venues.
+
+Below is the survey JSON schema used in this example:
 
 ```json
 {
@@ -151,9 +172,9 @@ This JSON schema defines a survey for ranking lunch venues.
 }
 ```
 
-![Kemeny Method Visualization](./kemeny-rule.png)
-
+[Open in CodeSandbox](https://codesandbox.io/p/sandbox/surveyjs-dashboard-kemeny-method-ranking-43ncql)
 
 ## Learn More
-- SurveyJS demos: [Implement a Custom Data Visualizer](https://surveyjs.io/dashboard/examples/custom-survey-data-visualizer/).
- - Learn about the Kemeny-Young method: [Kemeny-Young Method](https://en.wikipedia.org/wiki/Kemeny-Young_method)
+
+- [Implement a Custom Data Visualizer](https://surveyjs.io/dashboard/examples/custom-survey-data-visualizer/).
+- [Kemeny Method (Wikipedia)](https://en.wikipedia.org/wiki/Kemeny_method)

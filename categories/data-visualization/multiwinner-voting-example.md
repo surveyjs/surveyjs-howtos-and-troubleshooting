@@ -23,7 +23,7 @@ The process works as follows:
 
 To compute the results and visualize them, you can implement a custom data visualizer for SurveyJS Dashboard.
 
-![Multiwinner Voting Visualization](./multiwinner-voting.png)
+![Multiwinner voting visualization using SurveyJS Dashboard](./multiwinner-voting-example.png)
 
 ### Code Sample
 
