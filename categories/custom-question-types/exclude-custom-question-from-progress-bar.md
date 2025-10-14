@@ -1,18 +1,19 @@
-# Excluding Custom Question from Progress Bar
+# Exclude Custom Questions from the Progress Bar
 
 ## Problem
-When using a form progress bar with the type set to “answered questions” or “answered required questions,” the progress bar includes the captcha question in the progress calculation.
+
+When a progress bar displays how many questions a respondent has answered, some form fields that cannot store user input&mdash;such as a CAPTCHA&mdash;may still be counted toward the total. This can make the progress indicator inaccurate.
 
 ## Solution
-If a custom question doesn't have an answer, you can create a custom question model that inherits from the `QuestionNonValue` class. Questions derived from `QuestionNonValue` are automatically excluded from the progress indication. A demo of a question extending `QuestionNonValue` is available at [Implement a Descriptive Text Element](https://surveyjs.io/survey-creator/examples/custom-descriptive-text-element/).
 
-If you are extending a regular `Question` class, override the `hasInput` function to return `false`. This will exclude the custom question from the progress information. A question’s progress information is determined by the `hasInput` property, which is evaluated within the `getProgressInfo` function.
+To prevent such questions from affecting progress calculation, inherit your custom question model from the `QuestionNonValue` class. Questions based on this class are automatically excluded from the progress bar. See the following demo for a working example: [Implement a Descriptive Text Element](https://surveyjs.io/survey-creator/examples/custom-descriptive-text-element/).
 
-### Code Sample
-```javascript
+If your custom question must extend the base `Question` class, override the `hasInput` getter to return `false`. This marks the question as non-interactive and excludes it from progress calculation:
+
+```ts
 get hasInput(): boolean {
-    return false;
+  return false;
 }
 ```
 
-Alternatively, to exclude the question from the total number of questions in the progress bar, implement the [`SurveyModel.onProgressText`](https://github.com/surveyjs/survey-library/blob/86dc0416b36422955f9998e4464c3416943e730a/packages/survey-core/src/question.ts#L571-L579) function and modify `options.text` to reduce the total question count.
+You can also customize the progress bar text by handling the [`onGetProgressText`](https://surveyjs.io/form-library/documentation/api-reference/survey-data-model#onGetProgressText) event. This event provides access to various question counts and lets you assign a new display value via the `options.text` parameter.
