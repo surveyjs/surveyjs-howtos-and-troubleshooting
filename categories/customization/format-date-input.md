@@ -6,7 +6,7 @@ In a SurveyJS form, a Single-Line Input question with `inputType: "date"` may di
 
 ## Solution
 
-The SurveyJS Single-Line Input question with `inputType: "date"` is rendered as a standard HTML `<input type="date">` element. The display format of this element is controlled by the following system parameters:
+A SurveyJS Single-Line Input question with `inputType: "date"` is rendered as a standard HTML `<input type="date">` element. The display format of this element is controlled by the following system parameters:
 
 - **Browser language**
 - **Operating system regional settings**
