@@ -37,4 +37,7 @@ const vizPanel = new SurveyAnalytics.VisualizationPanel(
 
 vizPanel.render("surveyDashboardContainer");
 ```
+
+### Live Demo
+
 [View Plunker](https://plnkr.co/edit/ITfHQ1u7nWjoaIED)

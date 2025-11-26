@@ -73,4 +73,7 @@ VisualizationManager.registerVisualizer("text", TextChartVisualizer, 0);
 // Step 6: Add display name (shown in chart type selector)
 localization.locales["en"]["visualizer_textChartVisualizer"] = "Texts in Chart";
 ```
+
+### Live Demo
+
 [View Plunker](https://plnkr.co/edit/qO06ICbHC7tkAaKo)
