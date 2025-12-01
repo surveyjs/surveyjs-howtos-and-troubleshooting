@@ -1,4 +1,4 @@
-# Disable the Layout Engine
+# Disable the Layout Engine in SurveyJS Dashboard
 
 ## Problem
 
@@ -6,33 +6,38 @@ SurveyJS Dashboard includes a built-in layout engine that automatically arranges
 
 ## Solution
 
-To disable the built-in layout engine:
+To disable the built-in layout engine, follow these steps:
 
 1. Create a custom layout engine that implements the required interface (`start`, `stop`, `update`, `destroy`) but leaves all methods empty.
 2. Pass an instance of this custom engine to the [`VisualizationPanel`](https://surveyjs.io/dashboard/documentation/api-reference/visualization-panel)'s [`layoutEngine`](https://surveyjs.io/dashboard/documentation/visualizationpanel#layoutEngine) option.
-3. Optionally, set [`allowDynamicLayout: false`](https://surveyjs.io/dashboard/documentation/visualizationpanel#allowDynamicLayout) to hide the drag-and-drop handle since reordering is no longer supported.
+3. Disable the [`allowDynamicLayout`](https://surveyjs.io/dashboard/documentation/visualizationpanel#allowDynamicLayout) option to hide the drag-and-drop handle since reordering is no longer supported.
 
 ### Code Sample
 
 ```ts
+import { Model } from "survey-core";
+import { VisualizationPanel } from "survey-analytics";
+
+// ...
+// Omitted: `Survey.Model` creation and results loading
+// ...
+
 function LayoutEngine() {
-    return {
-        start: function () { },
-        stop: function () { },
-        update: function () { },
-        destroy: function () { }
-    };
+  return {
+    start: function () { },
+    stop: function () { },
+    update: function () { },
+    destroy: function () { }
+  };
 }
 
-const survey = new Survey.Model(json);
-
-const vizPanel = new SurveyAnalytics.VisualizationPanel(
-    survey.getAllQuestions(),
-    dataFromServer,
-    { 
-        layoutEngine: new LayoutEngine(), 
-        allowDynamicLayout: false 
-    }
+const vizPanel = new VisualizationPanel(
+  survey.getAllQuestions(),
+  surveyResults,
+  { 
+    layoutEngine: new LayoutEngine(), 
+    allowDynamicLayout: false 
+  }
 );
 
 vizPanel.render("surveyDashboardContainer");
@@ -40,4 +45,4 @@ vizPanel.render("surveyDashboardContainer");
 
 ### Live Demo
 
-[View Plunker](https://plnkr.co/edit/ITfHQ1u7nWjoaIED)
+[Open in Plunker](https://plnkr.co/edit/ITfHQ1u7nWjoaIED)

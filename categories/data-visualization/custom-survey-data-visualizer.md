@@ -1,4 +1,4 @@
-# Implement a Custom Data Visualizer
+# Implement a Custom Data Visualizer in SurveyJS Dashboard
 
 ## Problem
 
@@ -11,16 +11,21 @@ Built-in visualizers may not offer the exact layout or calculations you need.
 
 ## Solution
 
-Create **custom visualizers** by extending existing ones (`VisualizerBase`, `Matrix`, etc.) and replacing only the **rendering function** — while reusing their robust data calculation logic.
+Create **custom visualizers** by extending existing ones (`VisualizerBase`, `Matrix`, etc.). Replace only the **rendering function** and reuse their robust data calculation logic. This approach gives you full control over HTML/CSS while keeping performance and data accuracy.
 
-This approach gives you full control over HTML/CSS while keeping performance and correctness.
+To create a custom visualizer for SurveyJS Dashboard, follow the steps below:
 
-### Step-by-Step Guide
+1. **Implement a rendering function**          
+Within this function, configure the HTML markup that the visualizer should render.
 
-1. **Implement a custom `renderContent` function** — full control over markup  
-2. **Instantiate a base visualizer** (`VisualizerBase`, `Matrix`, etc.) and inject your renderer  
-3. **Register the visualizer** for specific question types  
-4. **Localize the display name** for the chart selector dropdown
+2. **Instantiate the visualizer**          
+Create an instance of a built-in visualizer (`VisualizerBase` and `Matrix` in this example). Pass the question to be visualized, survey results, rendering function, and your visualizer's name to the constructor.
+
+3. **Register the visualizer**         
+Use the `VisualizationManager.registerVisualizer(questionType, constructor, index)` method to register your custom visualizer for use with a required question type.
+
+4. **Specify the visualizer's display name**         
+This name will be displayed in the chart drop-down list. Use localization capabilities for this step.
 
 ### Code Sample
 
@@ -28,80 +33,131 @@ This approach gives you full control over HTML/CSS while keeping performance and
 // customVisualizers.ts
 import { VisualizerBase, Matrix, VisualizationManager, localization } from "survey-analytics";
 
-// 1. Custom Table Visualizer for Matrix Questions
-function MatrixTableVisualizer(question: any, data: any[], options?: any) {
-  function renderContent(container: HTMLElement, visualizer: any) {
-    const matrixData = visualizer.getCalculatedValues();
-    const rows = question.rows;
-    const columns = question.columns;
-
-    let html = `<table class="sa-matrix-table">
-      <thead><tr><th></th>`;
-    
-    columns.forEach((col: any) => {
-      html += `<th>${col.text || col.value}</th>`;
+// A visualizer that displays matrix results in the table form
+function MatrixTableVisualizer (question, data, options) {
+  function renderHeader (visualizer) {
+    let thHtml = "";
+    visualizer.valuesSource().forEach(dataItem => {
+      thHtml += `<th>` + dataItem.text + `</th>`
     });
-    html += `</tr></thead><tbody>`;
 
-    rows.forEach((row: any) => {
-      html += `<tr><td class="sa-matrix-row-label">${row.text || row.value}</td>`;
-      columns.forEach((col: any) => {
-        const cellValue = matrixData[row.value]?.[col.value] || 0;
-        html += `<td class="sa-matrix-cell">${cellValue}</td>`;
+    return `
+      <tr>
+        <th></th> ` +
+        thHtml + `
+      </tr>
+    `;
+  }
+
+  async function renderRows (visualizer) {
+    let data = await visualizer.getCalculatedValues();
+    const rows = visualizer.getValues();
+    const columns = visualizer.getSeriesValues();
+
+    let rowsHtml = "";
+    visualizer.getSeriesLabels().forEach((label, rowIndex) => {
+      const sum = data[rowIndex].reduce((a, b) => a + b, 0);
+      let tdHtml = "<td>" + label + "</td>";
+      visualizer.valuesSource().forEach(dataItem => {
+        const columnIndex = rows.indexOf(dataItem.value);
+        const voteCount = data[rowIndex][columnIndex];
+        tdHtml += `
+          <td>` +
+            voteCount + " | " + Math.round((voteCount / sum) * 100) + "%"; + `
+          </td>
+        `;
       });
-      html += `</tr>`;
+
+      rowsHtml += "<tr>" + tdHtml + "</tr>";
     });
 
-    html += `</tbody></table>`;
-    container.innerHTML = html;
+    return rowsHtml;
   }
 
-  const visualizer = new Matrix(question, data, { renderContent }, "matrixTable");
-  return visualizer;
+  // Step 1: Implement a rendering function
+  function renderContent (contentContainer, visualizer) {
+    const headerHtml = renderHeader(visualizer);
+    renderRows(visualizer).then((rowsHtml) => {
+      const tableHtml = `
+        <table class="sa__matrix-table">` +
+          headerHtml +
+          rowsHtml + `
+        </table>
+      `;
+      contentContainer.insertAdjacentHTML("beforeend", tableHtml);
+      visualizer.onUpdate();
+    });
+  };
+
+  // Step 2: Instantiate the visualizer
+  return new Matrix(
+    question,
+    data,
+    {
+      renderContent: renderContent, dataProvider: options.dataProvider
+    },
+    "matrix-table"
+  );
 }
 
-// 2. Multiple Textboxes: Show Average, Min, Max
-function MultipleTextStatsVisualizer(question: any, data: any[], options?: any) {
-  function renderContent(container: HTMLElement, visualizer: any) {
-    const stats = visualizer.getCalculatedValues(); // Array of objects
-    let html = `<div class="sa-multitext-stats">`;
-
-    question.items.forEach((item: any, idx: number) => {
-      const values = stats.map((row: any) => row[item.name]).filter((v: any) => v != null);
-      if (values.length === 0) return;
-
-      const avg = (values.reduce((a: number, b: number) => a + b, 0) / values.length).toFixed(1);
-      const min = Math.min(...values);
-      const max = Math.max(...values);
-
-      html += `
-        <div class="sa-multitext-item">
-          <div class="sa-multitext-label">${item.title || item.name}</div>
-          <div class="sa-multitext-values">
-            <span>Avg: <strong>${avg}</strong></span>
-            <span>Min: <strong>${min}</strong></span>
-            <span>Max: <strong>${max}</strong></span>
-          </div>
-        </div>`;
+// A visualizer that calculates the average lowest and highest prices and displays them
+function AvgPriceLimitVisualizer (question, data, options) {
+  function getData (visualizer) {
+    let result = [0, 0];
+    let counter = 0;
+    visualizer.surveyData.forEach(dataObj => {
+      const multipleTextValue = dataObj[visualizer.question.name];
+      if (!!multipleTextValue) {
+        result[0] += multipleTextValue.leastamount;
+        result[1] += multipleTextValue.mostamount;
+        counter++;
+      }
     });
 
-    html += `</div>`;
-    container.innerHTML = html;
-  }
+    result[0] = result[0] / counter;
+    result[1] = result[1] / counter;
 
-  const visualizer = new VisualizerBase(question, data, { renderContent }, "multitextStats");
-  return visualizer;
+    return result;
+  };
+
+  // Step 1: Implement a rendering function
+  function renderContent (contentContainer, visualizer) {
+    const dataToRender = getData(visualizer);
+    const minHtml = `
+      <div>
+        <span>
+          Avg. lowest price: ` + dataToRender[0] + `
+        </span>
+      </div>
+    `;
+    const maxHtml = `
+      <div>
+        <span>
+          Avg. highest price: ` + dataToRender[1] + `
+        </span>
+      </div>
+    `;
+    contentContainer.insertAdjacentHTML("beforeend", minHtml + maxHtml);
+  };
+
+  // Step 2: Instantiate the visualizer
+  return new VisualizerBase(
+    question,
+    data,
+    { renderContent: renderContent, dataProvider: options.dataProvider },
+    "avg-price-limit"
+  );
 }
 
-// 3. Register visualizers
+// Step 3: Register the visualizers and use them by default
 VisualizationManager.registerVisualizer("matrix", MatrixTableVisualizer, 0);
-VisualizationManager.registerVisualizer("multipletext", MultipleTextStatsVisualizer, 0);
+VisualizationManager.registerVisualizer("multipletext", AvgPriceLimitVisualizer, 0);
 
-// 4. Localize display names
-localization.locales["en"]["visualizer_matrixTable"] = "Table View";
-localization.locales["en"]["visualizer_multitextStats"] = "Statistics Summary";
+// Step 4: Specify the visualizers' display names
+localization.locales["en"]["visualizer_matrix-table"] = "Table";
+localization.locales["en"]["visualizer_avg-price-limit"] = "Avg. Lowest and Highest Price";
 ```
 
 ### Live Demo
 
-[View Plunker](https://plnkr.co/edit/5Nz65FnimYLoYSMd)
+[Open in Plunker](https://plnkr.co/edit/euAlF27O2NQFb4N8)
