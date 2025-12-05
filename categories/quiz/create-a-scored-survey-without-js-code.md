@@ -103,8 +103,6 @@ For yes/no eligibility rules, create a calculated value with an expression that 
 
 ### Survey JSON Schema for Eligibility Screening
 
-<!-- TODO: Update the schema after https://github.com/surveyjs/survey-library/issues/10414 -->
-
 ```json
 {
   "title": "Medical Eligibility Screening Survey",
@@ -112,7 +110,7 @@ For yes/no eligibility rules, create a calculated value with an expression that 
   "calculatedValues": [
     {
       "name": "isEligible",
-      "expression": "age({dob}) >= 18 and !{pregnant} and !({conditions} anyof ['Heart disease','Cancer','Immunodeficiency'])",
+      "expression": "age({dob}) >= 18 and !{pregnant} and {conditions} noneof ['Heart disease','Cancer','Immunodeficiency']",
       "includeIntoResult": true
     }
   ],
@@ -229,10 +227,8 @@ For yes/no eligibility rules, create a calculated value with an expression that 
 }
 ```
 
-<!-- TODO: Update Plunker after https://github.com/surveyjs/survey-library/issues/10414 -->
-
-[Open in Plunker](https://plnkr.co/edit/Bu1pVNmnU63rU7Od)
+[Open in Plunker](https://plnkr.co/edit/xIEC51Ud4lGWHn9w)
 
 ## Learn More
 
-* [SurveyJS Expressions](https://surveyjs.io/form-library/documentation/design-survey/conditional-logic#expressions)
+- [SurveyJS Expressions](https://surveyjs.io/form-library/documentation/design-survey/conditional-logic#expressions)
