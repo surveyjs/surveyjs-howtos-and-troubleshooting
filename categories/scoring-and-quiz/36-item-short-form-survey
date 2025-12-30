@@ -1,0 +1,643 @@
+# RAND SF-36 Health Survey with Scoring in SurveyJS
+
+## Introduction
+The RAND 36-Item Short Form Health Survey (SF-36) is a widely validated instrument for assessing health-related quality of life. It measures eight core domains plus a health transition item through 36 standardized questions.
+
+In this document, we show how to implement the RAND SF-36 in SurveyJS and automatically calculate domain scores.
+
+## RAND SF-36 Scoring Overview
+
+RAND scoring transforms raw responses into domain scores ranging from 0 to 100 (higher = better health) using two steps:
+
+1. Recoding individual items
+Each response option is mapped to a predefined 0–100 value. Some items are reverse-scored.
+
+2. Averaging within domains
+Recoded values for all items in a domain are averaged. Only answered items contribute to the average (standard prorating rule).
+
+The eight domains are:
+
+* Physical Functioning (10 questions)
+* Role Limitations – Physical Health (4 questions)
+* Role Limitations – Emotional Problems (3 questions)
+* Energy/Fatigue (Vitality) (4 questions)
+* Emotional Well-Being (5 questions)
+* Social Functioning (2 questions)
+* Pain (2 questions)
+* General Health (5 questions)
+* Plus one single-item Reported Health Transition.
+
+The result is a domain score between 0 and 100, where higher values indicate better health.
+
+## Problem
+
+The RAND SF-36 questionnaire uses standardized answer options (for example, 3- or 5-point Likert scales), but the numeric score assigned to each answer depends on the specific question. To implement this survey in a digital form builder like SurveyJS Creator requires registering custom properties which would allow survey editors to categorise questions into domains (groups) and attach scores to each question answer (choice).
+
+## How to Build a RAND Survey with SurveyJS
+
+Use SurveyJS [Radiog Button Group](https://surveyjs.io/form-library/examples/single-select-radio-button-group/) questions to build a RAND SF-36 questionnaire. Define the following custom properties:
+
+* Define a score on each choice (0–100 recoded value).
+* Define a subdomain property on each question to group questions into domains.
+
+On survey completion (the [`onCompleting`](https://surveyjs.io/form-library/documentation/api-reference/survey-data-model#onCompleting) event), aggregate and average scores per subdomain, then display results.
+
+### Code Sample
+
+```ts
+import { Serializer } from "survey-core";
+
+// Add score to answer choices
+Serializer.addProperty("itemvalue", {
+  name: "score:number",
+});
+
+// Add subdomain to questions
+Serializer.addProperty("question", "subdomain");
+
+function calculateSubdomainScores(survey) {
+  const scores = {}; // { subdomain: [score1, score2, ...] }
+
+  survey.getAllQuestions().forEach((q) => {
+    const value = survey.getValue(q.name);
+    if (value !== undefined && q.subdomain && q.choices) {
+      const selectedChoice = q.choices.find(c => c.value === value);
+      if (selectedChoice && selectedChoice.score !== undefined) {
+        if (!scores[q.subdomain]) scores[q.subdomain] = [];
+        scores[q.subdomain].push(selectedChoice.score);
+      }
+    }
+  });
+
+  // Average only answered items (standard SF-36 scoring rule)
+  const averages = {};
+  Object.keys(scores).forEach(key => {
+    const itemScores = scores[key];
+    if (itemScores.length > 0) {
+      averages[key] = Math.round(
+        itemScores.reduce((a, b) => a + b, 0) / itemScores.length
+      );
+    } else {
+      averages[key] = "N/A";
+    }
+  });
+
+  return averages;
+}
+
+survey.onCompleting.add((sender) => {
+  const subdomainScores = calculateSubdomainScores(sender);
+
+  // Store scores as survey data so they can be used in completedHtml
+  Object.keys(subdomainScores).forEach(key => {
+    sender.setValue(key, subdomainScores[key]);
+  });
+});
+```
+### Survey JSON Schema
+Each question uses various visible answers and scoring remains question-specific. Each question belongs to a different sub-domain.
+```
+{
+  "title": "RAND 36-Item Health Survey 1.0",
+  "description": "Choose one option for each questionnaire item.",
+  "completedHtml": "<h3>Thank you for completing the survey!</h3><h4>Your SF-36 Domain Scores (0–100, higher = better health):</h4><ul><li><strong>Physical Functioning:</strong> {physical_functioning}</li><li><strong>Role Limitations – Physical Health:</strong> {role_physical}</li><li><strong>Role Limitations – Emotional Problems:</strong> {role_emotional}</li><li><strong>Energy/Fatigue (Vitality):</strong> {energy_fatigue}</li><li><strong>Emotional Well-Being:</strong> {emotional_wellbeing}</li><li><strong>Social Functioning:</strong> {social_functioning}</li><li><strong>Pain:</strong> {pain}</li><li><strong>General Health:</strong> {general_health}</li><li><strong>Reported Health Transition:</strong> {health_change}</li></ul>",
+  "showTOC": true,
+  "pages": [
+    {
+      "name": "general_intro",
+      "title": "General Health",
+      "elements": [
+        {
+          "type": "radiogroup",
+          "name": "q1",
+          "title": "In general, would you say your health is:",
+          "isRequired": true,
+          "subdomain": "general_health",
+          "choices": [
+            { "value": 1, "text": "Excellent", "score": 100 },
+            { "value": 2, "text": "Very good", "score": 75 },
+            { "value": 3, "text": "Good", "score": 50 },
+            { "value": 4, "text": "Fair", "score": 25 },
+            { "value": 5, "text": "Poor", "score": 0 }
+          ]
+        },
+        {
+          "type": "radiogroup",
+          "name": "q2",
+          "title": "Compared to one year ago, how would you rate your health in general now?",
+          "isRequired": true,
+          "subdomain": "health_change",
+          "choices": [
+            { "value": 1, "text": "Much better now than one year ago", "score": 100 },
+            { "value": 2, "text": "Somewhat better now than one year ago", "score": 75 },
+            { "value": 3, "text": "About the same", "score": 50 },
+            { "value": 4, "text": "Somewhat worse now than one year ago", "score": 25 },
+            { "value": 5, "text": "Much worse now than one year ago", "score": 0 }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "physical_functioning",
+      "title": "Physical Functioning",
+      "description": "The following items are about activities you might do during a typical day. Does your health now limit you in these activities? If so, how much?",
+      "elements": [
+        {
+          "type": "radiogroup",
+          "name": "q3",
+          "title": "Vigorous activities, such as running, lifting heavy objects, participating in strenuous sports",
+          "isRequired": true,
+          "subdomain": "physical_functioning",
+          "choices": [
+            { "value": 1, "text": "Yes, limited a lot", "score": 0 },
+            { "value": 2, "text": "Yes, limited a little", "score": 50 },
+            { "value": 3, "text": "No, not limited at all", "score": 100 }
+          ]
+        },
+        {
+          "type": "radiogroup",
+          "name": "q4",
+          "title": "Moderate activities, such as moving a table, pushing a vacuum cleaner, bowling, or playing golf",
+          "isRequired": true,
+          "subdomain": "physical_functioning",
+          "choices": [
+            { "value": 1, "text": "Yes, limited a lot", "score": 0 },
+            { "value": 2, "text": "Yes, limited a little", "score": 50 },
+            { "value": 3, "text": "No, not limited at all", "score": 100 }
+          ]
+        },
+        {
+          "type": "radiogroup",
+          "name": "q5",
+          "title": "Lifting or carrying groceries",
+          "isRequired": true,
+          "subdomain": "physical_functioning",
+          "choices": [
+            { "value": 1, "text": "Yes, limited a lot", "score": 0 },
+            { "value": 2, "text": "Yes, limited a little", "score": 50 },
+            { "value": 3, "text": "No, not limited at all", "score": 100 }
+          ]
+        },
+        {
+          "type": "radiogroup",
+          "name": "q6",
+          "title": "Climbing several flights of stairs",
+          "isRequired": true,
+          "subdomain": "physical_functioning",
+          "choices": [
+            { "value": 1, "text": "Yes, limited a lot", "score": 0 },
+            { "value": 2, "text": "Yes, limited a little", "score": 50 },
+            { "value": 3, "text": "No, not limited at all", "score": 100 }
+          ]
+        },
+        {
+          "type": "radiogroup",
+          "name": "q7",
+          "title": "Climbing one flight of stairs",
+          "isRequired": true,
+          "subdomain": "physical_functioning",
+          "choices": [
+            { "value": 1, "text": "Yes, limited a lot", "score": 0 },
+            { "value": 2, "text": "Yes, limited a little", "score": 50 },
+            { "value": 3, "text": "No, not limited at all", "score": 100 }
+          ]
+        },
+        {
+          "type": "radiogroup",
+          "name": "q8",
+          "title": "Bending, kneeling, or stooping",
+          "isRequired": true,
+          "subdomain": "physical_functioning",
+          "choices": [
+            { "value": 1, "text": "Yes, limited a lot", "score": 0 },
+            { "value": 2, "text": "Yes, limited a little", "score": 50 },
+            { "value": 3, "text": "No, not limited at all", "score": 100 }
+          ]
+        },
+        {
+          "type": "radiogroup",
+          "name": "q9",
+          "title": "Walking more than a mile",
+          "isRequired": true,
+          "subdomain": "physical_functioning",
+          "choices": [
+            { "value": 1, "text": "Yes, limited a lot", "score": 0 },
+            { "value": 2, "text": "Yes, limited a little", "score": 50 },
+            { "value": 3, "text": "No, not limited at all", "score": 100 }
+          ]
+        },
+        {
+          "type": "radiogroup",
+          "name": "q10",
+          "title": "Walking several blocks",
+          "isRequired": true,
+          "subdomain": "physical_functioning",
+          "choices": [
+            { "value": 1, "text": "Yes, limited a lot", "score": 0 },
+            { "value": 2, "text": "Yes, limited a little", "score": 50 },
+            { "value": 3, "text": "No, not limited at all", "score": 100 }
+          ]
+        },
+        {
+          "type": "radiogroup",
+          "name": "q11",
+          "title": "Walking one block",
+          "isRequired": true,
+          "subdomain": "physical_functioning",
+          "choices": [
+            { "value": 1, "text": "Yes, limited a lot", "score": 0 },
+            { "value": 2, "text": "Yes, limited a little", "score": 50 },
+            { "value": 3, "text": "No, not limited at all", "score": 100 }
+          ]
+        },
+        {
+          "type": "radiogroup",
+          "name": "q12",
+          "title": "Bathing or dressing yourself",
+          "isRequired": true,
+          "subdomain": "physical_functioning",
+          "choices": [
+            { "value": 1, "text": "Yes, limited a lot", "score": 0 },
+            { "value": 2, "text": "Yes, limited a little", "score": 50 },
+            { "value": 3, "text": "No, not limited at all", "score": 100 }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "role_physical",
+      "title": "Role Limitations Due to Physical Health",
+      "description": "During the past 4 weeks, have you had any of the following problems with your work or other regular daily activities as a result of your physical health?",
+      "elements": [
+        {
+          "type": "radiogroup",
+          "name": "q13",
+          "title": "Cut down the amount of time you spent on work or other activities",
+          "isRequired": true,
+          "subdomain": "role_physical",
+          "choices": [
+            { "value": 1, "text": "Yes", "score": 0 },
+            { "value": 2, "text": "No", "score": 100 }
+          ]
+        },
+        {
+          "type": "radiogroup",
+          "name": "q14",
+          "title": "Accomplished less than you would like",
+          "isRequired": true,
+          "subdomain": "role_physical",
+          "choices": [
+            { "value": 1, "text": "Yes", "score": 0 },
+            { "value": 2, "text": "No", "score": 100 }
+          ]
+        },
+        {
+          "type": "radiogroup",
+          "name": "q15",
+          "title": "Were limited in the kind of work or other activities",
+          "isRequired": true,
+          "subdomain": "role_physical",
+          "choices": [
+            { "value": 1, "text": "Yes", "score": 0 },
+            { "value": 2, "text": "No", "score": 100 }
+          ]
+        },
+        {
+          "type": "radiogroup",
+          "name": "q16",
+          "title": "Had difficulty performing the work or other activities (for example, it took extra effort)",
+          "isRequired": true,
+          "subdomain": "role_physical",
+          "choices": [
+            { "value": 1, "text": "Yes", "score": 0 },
+            { "value": 2, "text": "No", "score": 100 }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "role_emotional_social",
+      "title": "Role Limitations Due to Emotional Problems & Social Functioning",
+      "description": "During the past 4 weeks, have you had any of the following problems with your work or other regular daily activities as a result of any emotional problems (such as feeling depressed or anxious)?",
+      "elements": [
+        {
+          "type": "radiogroup",
+          "name": "q17",
+          "title": "Cut down the amount of time you spent on work or other activities",
+          "isRequired": true,
+          "subdomain": "role_emotional",
+          "choices": [
+            { "value": 1, "text": "Yes", "score": 0 },
+            { "value": 2, "text": "No", "score": 100 }
+          ]
+        },
+        {
+          "type": "radiogroup",
+          "name": "q18",
+          "title": "Accomplished less than you would like",
+          "isRequired": true,
+          "subdomain": "role_emotional",
+          "choices": [
+            { "value": 1, "text": "Yes", "score": 0 },
+            { "value": 2, "text": "No", "score": 100 }
+          ]
+        },
+        {
+          "type": "radiogroup",
+          "name": "q19",
+          "title": "Didn't do work or other activities as carefully as usual",
+          "isRequired": true,
+          "subdomain": "role_emotional",
+          "choices": [
+            { "value": 1, "text": "Yes", "score": 0 },
+            { "value": 2, "text": "No", "score": 100 }
+          ]
+        },
+        {
+          "type": "radiogroup",
+          "name": "q20",
+          "title": "During the past 4 weeks, to what extent has your physical health or emotional problems interfered with your normal social activities with family, friends, neighbors, or groups?",
+          "isRequired": true,
+          "subdomain": "social_functioning",
+          "choices": [
+            { "value": 1, "text": "Not at all", "score": 100 },
+            { "value": 2, "text": "Slightly", "score": 75 },
+            { "value": 3, "text": "Moderately", "score": 50 },
+            { "value": 4, "text": "Quite a bit", "score": 25 },
+            { "value": 5, "text": "Extremely", "score": 0 }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "pain",
+      "title": "Pain",
+      "elements": [
+        {
+          "type": "radiogroup",
+          "name": "q21",
+          "title": "How much bodily pain have you had during the past 4 weeks?",
+          "isRequired": true,
+          "subdomain": "pain",
+          "choices": [
+            { "value": 1, "text": "None", "score": 100 },
+            { "value": 2, "text": "Very mild", "score": 80 },
+            { "value": 3, "text": "Mild", "score": 60 },
+            { "value": 4, "text": "Moderate", "score": 40 },
+            { "value": 5, "text": "Severe", "score": 20 },
+            { "value": 6, "text": "Very severe", "score": 0 }
+          ]
+        },
+        {
+          "type": "radiogroup",
+          "name": "q22",
+          "title": "During the past 4 weeks, how much did pain interfere with your normal work (including both work outside the home and housework)?",
+          "isRequired": true,
+          "subdomain": "pain",
+          "choices": [
+            { "value": 1, "text": "Not at all", "score": 100 },
+            { "value": 2, "text": "A little bit", "score": 75 },
+            { "value": 3, "text": "Moderately", "score": 50 },
+            { "value": 4, "text": "Quite a bit", "score": 25 },
+            { "value": 5, "text": "Extremely", "score": 0 }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "mental_health",
+      "title": "Emotional Well-Being and Energy/Fatigue",
+      "description": "These questions are about how you feel and how things have been with you during the past 4 weeks. For each question, please give the one answer that comes closest to the way you have been feeling.\n\nHow much of the time during the past 4 weeks...",
+      "elements": [
+        {
+          "type": "radiogroup",
+          "name": "q23",
+          "title": "Did you feel full of pep?",
+          "isRequired": true,
+          "subdomain": "energy_fatigue",
+          "choices": [
+            { "value": 1, "text": "All of the time", "score": 100 },
+            { "value": 2, "text": "Most of the time", "score": 80 },
+            { "value": 3, "text": "A good bit of the time", "score": 60 },
+            { "value": 4, "text": "Some of the time", "score": 40 },
+            { "value": 5, "text": "A little of the time", "score": 20 },
+            { "value": 6, "text": "None of the time", "score": 0 }
+          ]
+        },
+        {
+          "type": "radiogroup",
+          "name": "q24",
+          "title": "Have you been a very nervous person?",
+          "isRequired": true,
+          "subdomain": "emotional_wellbeing",
+          "choices": [
+            { "value": 1, "text": "All of the time", "score": 0 },
+            { "value": 2, "text": "Most of the time", "score": 20 },
+            { "value": 3, "text": "A good bit of the time", "score": 40 },
+            { "value": 4, "text": "Some of the time", "score": 60 },
+            { "value": 5, "text": "A little of the time", "score": 80 },
+            { "value": 6, "text": "None of the time", "score": 100 }
+          ]
+        },
+        {
+          "type": "radiogroup",
+          "name": "q25",
+          "title": "Have you felt so down in the dumps that nothing could cheer you up?",
+          "isRequired": true,
+          "subdomain": "emotional_wellbeing",
+          "choices": [
+            { "value": 1, "text": "All of the time", "score": 0 },
+            { "value": 2, "text": "Most of the time", "score": 20 },
+            { "value": 3, "text": "A good bit of the time", "score": 40 },
+            { "value": 4, "text": "Some of the time", "score": 60 },
+            { "value": 5, "text": "A little of the time", "score": 80 },
+            { "value": 6, "text": "None of the time", "score": 100 }
+          ]
+        },
+        {
+          "type": "radiogroup",
+          "name": "q26",
+          "title": "Have you felt calm and peaceful?",
+          "isRequired": true,
+          "subdomain": "emotional_wellbeing",
+          "choices": [
+            { "value": 1, "text": "All of the time", "score": 100 },
+            { "value": 2, "text": "Most of the time", "score": 80 },
+            { "value": 3, "text": "A good bit of the time", "score": 60 },
+            { "value": 4, "text": "Some of the time", "score": 40 },
+            { "value": 5, "text": "A little of the time", "score": 20 },
+            { "value": 6, "text": "None of the time", "score": 0 }
+          ]
+        },
+        {
+          "type": "radiogroup",
+          "name": "q27",
+          "title": "Did you have a lot of energy?",
+          "isRequired": true,
+          "subdomain": "energy_fatigue",
+          "choices": [
+            { "value": 1, "text": "All of the time", "score": 100 },
+            { "value": 2, "text": "Most of the time", "score": 80 },
+            { "value": 3, "text": "A good bit of the time", "score": 60 },
+            { "value": 4, "text": "Some of the time", "score": 40 },
+            { "value": 5, "text": "A little of the time", "score": 20 },
+            { "value": 6, "text": "None of the time", "score": 0 }
+          ]
+        },
+        {
+          "type": "radiogroup",
+          "name": "q28",
+          "title": "Have you felt downhearted and blue?",
+          "isRequired": true,
+          "subdomain": "emotional_wellbeing",
+          "choices": [
+            { "value": 1, "text": "All of the time", "score": 0 },
+            { "value": 2, "text": "Most of the time", "score": 20 },
+            { "value": 3, "text": "A good bit of the time", "score": 40 },
+            { "value": 4, "text": "Some of the time", "score": 60 },
+            { "value": 5, "text": "A little of the time", "score": 80 },
+            { "value": 6, "text": "None of the time", "score": 100 }
+          ]
+        },
+        {
+          "type": "radiogroup",
+          "name": "q29",
+          "title": "Did you feel worn out?",
+          "isRequired": true,
+          "subdomain": "energy_fatigue",
+          "choices": [
+            { "value": 1, "text": "All of the time", "score": 0 },
+            { "value": 2, "text": "Most of the time", "score": 20 },
+            { "value": 3, "text": "A good bit of the time", "score": 40 },
+            { "value": 4, "text": "Some of the time", "score": 60 },
+            { "value": 5, "text": "A little of the time", "score": 80 },
+            { "value": 6, "text": "None of the time", "score": 100 }
+          ]
+        },
+        {
+          "type": "radiogroup",
+          "name": "q30",
+          "title": "Have you been a happy person?",
+          "isRequired": true,
+          "subdomain": "emotional_wellbeing",
+          "choices": [
+            { "value": 1, "text": "All of the time", "score": 100 },
+            { "value": 2, "text": "Most of the time", "score": 80 },
+            { "value": 3, "text": "A good bit of the time", "score": 60 },
+            { "value": 4, "text": "Some of the time", "score": 40 },
+            { "value": 5, "text": "A little of the time", "score": 20 },
+            { "value": 6, "text": "None of the time", "score": 0 }
+          ]
+        },
+        {
+          "type": "radiogroup",
+          "name": "q31",
+          "title": "Did you feel tired?",
+          "isRequired": true,
+          "subdomain": "energy_fatigue",
+          "choices": [
+            { "value": 1, "text": "All of the time", "score": 0 },
+            { "value": 2, "text": "Most of the time", "score": 20 },
+            { "value": 3, "text": "A good bit of the time", "score": 40 },
+            { "value": 4, "text": "Some of the time", "score": 60 },
+            { "value": 5, "text": "A little of the time", "score": 80 },
+            { "value": 6, "text": "None of the time", "score": 100 }
+          ]
+        },
+        {
+          "type": "radiogroup",
+          "name": "q32",
+          "title": "During the past 4 weeks, how much of the time has your physical health or emotional problems interfered with your social activities (like visiting with friends, relatives, etc.)?",
+          "isRequired": true,
+          "subdomain": "social_functioning",
+          "choices": [
+            { "value": 1, "text": "All of the time", "score": 0 },
+            { "value": 2, "text": "Most of the time", "score": 25 },
+            { "value": 3, "text": "Some of the time", "score": 50 },
+            { "value": 4, "text": "A little of the time", "score": 75 },
+            { "value": 5, "text": "None of the time", "score": 100 }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "general_health_perceptions",
+      "title": "General Health Perceptions",
+      "description": "How TRUE or FALSE is each of the following statements for you?",
+      "elements": [
+        {
+          "type": "radiogroup",
+          "name": "q33",
+          "title": "I seem to get sick a little easier than other people",
+          "isRequired": true,
+          "subdomain": "general_health",
+          "choices": [
+            { "value": 1, "text": "Definitely true", "score": 0 },
+            { "value": 2, "text": "Mostly true", "score": 25 },
+            { "value": 3, "text": "Don't know", "score": 50 },
+            { "value": 4, "text": "Mostly false", "score": 75 },
+            { "value": 5, "text": "Definitely false", "score": 100 }
+          ]
+        },
+        {
+          "type": "radiogroup",
+          "name": "q34",
+          "title": "I am as healthy as anybody I know",
+          "isRequired": true,
+          "subdomain": "general_health",
+          "choices": [
+            { "value": 1, "text": "Definitely true", "score": 100 },
+            { "value": 2, "text": "Mostly true", "score": 75 },
+            { "value": 3, "text": "Don't know", "score": 50 },
+            { "value": 4, "text": "Mostly false", "score": 25 },
+            { "value": 5, "text": "Definitely false", "score": 0 }
+          ]
+        },
+        {
+          "type": "radiogroup",
+          "name": "q35",
+          "title": "I expect my health to get worse",
+          "isRequired": true,
+          "subdomain": "general_health",
+          "choices": [
+            { "value": 1, "text": "Definitely true", "score": 0 },
+            { "value": 2, "text": "Mostly true", "score": 25 },
+            { "value": 3, "text": "Don't know", "score": 50 },
+            { "value": 4, "text": "Mostly false", "score": 75 },
+            { "value": 5, "text": "Definitely false", "score": 100 }
+          ]
+        },
+        {
+          "type": "radiogroup",
+          "name": "q36",
+          "title": "My health is excellent",
+          "isRequired": true,
+          "subdomain": "general_health",
+          "choices": [
+            { "value": 1, "text": "Definitely true", "score": 100 },
+            { "value": 2, "text": "Mostly true", "score": 75 },
+            { "value": 3, "text": "Don't know", "score": 50 },
+            { "value": 4, "text": "Mostly false", "score": 25 },
+            { "value": 5, "text": "Definitely false", "score": 0 }
+          ]
+        }
+      ]
+    }
+  ],
+  "showQuestionNumbers": "on",
+  "completeText": "Submit Survey",
+  "requiredMark": "(required)"
+}
+```
+
+## Live Demo 
+
+[View in Plunker](https://plnkr.co/edit/5b8xK6u2cv4Erp0w)
+
+### Learn More
+
+- [RAND SF-36 Health Survey Scoring Instructions](https://www.rand.org/health/surveys/mos/36-item-short-form/scoring.html)
+- [36-Item Short Form Survey Instrument (SF-36)](https://www.rand.org/health/surveys/mos/36-item-short-form/survey-instrument.html)
+- [SurveyJS Custom Properties](https://surveyjs.io/form-library/documentation/customize-question-types/add-custom-properties-to-a-form)
+- SurveyJS Events: [`onCompleting`](https://surveyjs.io/form-library/documentation/api-reference/survey-data-model#onCompleting)
+- [Designing Scored Surveys with SurveyJS](https://surveyjs.io/form-library/examples/create-a-scored-survey/)
