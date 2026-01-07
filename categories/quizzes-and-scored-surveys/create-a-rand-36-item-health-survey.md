@@ -1,70 +1,74 @@
-# RAND SF-36 Health Survey with Scoring in SurveyJS
+# Create a RAND 36-Item Health Survey (SF-36) with Scoring in SurveyJS
 
-## Introduction
-The RAND 36-Item Short Form Health Survey (SF-36) is a widely validated instrument for assessing health-related quality of life. It measures eight core domains plus a health transition item through 36 standardized questions.
+The RAND 36-Item Short Form Health Survey (SF-36) is a widely validated instrument for assessing health-related quality of life. It consists of 36 standardized questions that measure eight core health domains, along with one health transition item.
 
-In this document, we show how to implement the RAND SF-36 in SurveyJS and automatically calculate domain scores.
+This guide explains how to implement the RAND SF-36 questionnaire in SurveyJS and automatically calculate domain scores based on RAND's official scoring methodology.
 
 ## RAND SF-36 Scoring Overview
 
-RAND scoring transforms raw responses into domain scores ranging from 0 to 100 (higher = better health) using two steps:
+RAND SF-36 scoring converts raw questionnaire responses into standardized domain scores ranging from 0 to 100, where higher scores indicate better health status. The scoring process consists of two steps:
 
-1. Recoding individual items
-Each response option is mapped to a predefined 0–100 value. Some items are reverse-scored.
+1. **Re-code individual items**\
+Each response option is mapped to a predefined value between 0 and 100. Depending on the question, some items require reverse scoring.
 
-2. Averaging within domains
-Recoded values for all items in a domain are averaged. Only answered items contribute to the average (standard prorating rule).
+2. **Average scores within each domain**\
+Re-coded values for all items within a domain are averaged. Only answered items are included in the calculation, following the standard SF-36 prorating rule.
 
-The eight domains are:
+The SF-36 domains are:
 
 * Physical Functioning (10 questions)
-* Role Limitations – Physical Health (4 questions)
-* Role Limitations – Emotional Problems (3 questions)
+* Role Limitations &ndash; Physical Health (4 questions)
+* Role Limitations &ndash; Emotional Problems (3 questions)
 * Energy/Fatigue (Vitality) (4 questions)
 * Emotional Well-Being (5 questions)
 * Social Functioning (2 questions)
 * Pain (2 questions)
 * General Health (5 questions)
-* Plus one single-item Reported Health Transition.
+* Reported Health Transition (1 question)
 
-The result is a domain score between 0 and 100, where higher values indicate better health.
+Each domain produces a score from 0 to 100. For detailed scoring rules, see the official documentation: [RAND SF-36 Health Survey Scoring Instructions](https://www.rand.org/health/surveys/mos/36-item-short-form/scoring.html).
 
 ## Problem
 
-The RAND SF-36 questionnaire uses standardized answer options (for example, 3- or 5-point Likert scales), but the numeric score assigned to each answer depends on the specific question. To implement this survey in a digital form builder like SurveyJS Creator requires registering custom properties which would allow survey editors to categorise questions into domains (groups) and attach scores to each question answer (choice).
+Although the RAND SF-36 questionnaire uses standardized answer formats (for example, 3-point or 5-point Likert scales), the numeric score assigned to each answer varies by question. When implementing the questionnaire in SurveyJS Creator, this creates two challenges:
 
-## How to Build a RAND Survey with SurveyJS
+- Questions must be grouped into domains for scoring.
+- Each choice option must carry a question-specific numeric score.
 
-Use SurveyJS [Radiog Button Group](https://surveyjs.io/form-library/examples/single-select-radio-button-group/) questions to build a RAND SF-36 questionnaire. Define the following custom properties:
+SurveyJS does not provide this functionality out of the box, so additional configuration is required.
 
-* Define a score on each choice (0–100 recoded value).
-* Define a subdomain property on each question to group questions into domains.
+## Solution
 
-On survey completion (the [`onCompleting`](https://surveyjs.io/form-library/documentation/api-reference/survey-data-model#onCompleting) event), aggregate and average scores per subdomain, then display results.
+Use SurveyJS [Radio Button Group](https://surveyjs.io/form-library/examples/single-select-radio-button-group/) questions to represent SF-36 items. Extend the question's functionality with [custom properties](https://surveyjs.io/form-library/documentation/customize-question-types/add-custom-properties-to-a-form):
+
+* `score` &mdash; A numeric value (0&ndash;100) assigned to an answer choice after re-coding.
+* `domain` &mdash; A string identifier used to group questions into scoring domains.
+
+On survey completion (using the [`onCompleting`](https://surveyjs.io/form-library/documentation/api-reference/survey-data-model#onCompleting) event), aggregate the scores for each domain, compute their averages, and store the results for display.
 
 ### Code Sample
 
 ```ts
 import { Serializer } from "survey-core";
 
-// Add score to answer choices
+// Add `score` to choice options
 Serializer.addProperty("itemvalue", {
   name: "score:number",
 });
 
-// Add subdomain to questions
-Serializer.addProperty("question", "subdomain");
+// Add `domain` to questions
+Serializer.addProperty("question", "domain");
 
-function calculateSubdomainScores(survey) {
-  const scores = {}; // { subdomain: [score1, score2, ...] }
+function calculateDomainScores(survey) {
+  const scores = {}; // { domain: [score1, score2, ...] }
 
   survey.getAllQuestions().forEach((q) => {
     const value = survey.getValue(q.name);
-    if (value !== undefined && q.subdomain && q.choices) {
+    if (value !== undefined && q.domain && q.choices) {
       const selectedChoice = q.choices.find(c => c.value === value);
       if (selectedChoice && selectedChoice.score !== undefined) {
-        if (!scores[q.subdomain]) scores[q.subdomain] = [];
-        scores[q.subdomain].push(selectedChoice.score);
+        if (!scores[q.domain]) scores[q.domain] = [];
+        scores[q.domain].push(selectedChoice.score);
       }
     }
   });
@@ -85,22 +89,25 @@ function calculateSubdomainScores(survey) {
   return averages;
 }
 
-survey.onCompleting.add((sender) => {
-  const subdomainScores = calculateSubdomainScores(sender);
+survey.onCompleting.add(() => {
+  const domainScores = calculateDomainScores(survey);
 
-  // Store scores as survey data so they can be used in completedHtml
-  Object.keys(subdomainScores).forEach(key => {
-    sender.setValue(key, subdomainScores[key]);
+  // Store scores in survey data for use in `completedHtml`
+  Object.keys(domainScores).forEach(key => {
+    survey.setValue(key, domainScores[key]);
   });
 });
 ```
-### Survey JSON Schema
-Each question uses various visible answers and scoring remains question-specific. Each question belongs to a different sub-domain.
-```
+
+### JSON Schema for the RAND 36-Item Health Survey (SF-36)
+
+Each question defines its own answer choices and scoring logic. The `domain` property assigns each question to the appropriate SF-36 domain, while the `score` property defines the re-coded numeric value for each answer option.
+
+```json
 {
   "title": "RAND 36-Item Health Survey 1.0",
   "description": "Choose one option for each questionnaire item.",
-  "completedHtml": "<h3>Thank you for completing the survey!</h3><h4>Your SF-36 Domain Scores (0–100, higher = better health):</h4><ul><li><strong>Physical Functioning:</strong> {physical_functioning}</li><li><strong>Role Limitations – Physical Health:</strong> {role_physical}</li><li><strong>Role Limitations – Emotional Problems:</strong> {role_emotional}</li><li><strong>Energy/Fatigue (Vitality):</strong> {energy_fatigue}</li><li><strong>Emotional Well-Being:</strong> {emotional_wellbeing}</li><li><strong>Social Functioning:</strong> {social_functioning}</li><li><strong>Pain:</strong> {pain}</li><li><strong>General Health:</strong> {general_health}</li><li><strong>Reported Health Transition:</strong> {health_change}</li></ul>",
+  "completedHtml": "<h3>Thank you for completing the survey!</h3><h4>Your SF-36 Domain Scores (0-100, higher = better health):</h4><ul><li><strong>Physical Functioning:</strong> {physical_functioning}</li><li><strong>Role Limitations - Physical Health:</strong> {role_physical}</li><li><strong>Role Limitations - Emotional Problems:</strong> {role_emotional}</li><li><strong>Energy/Fatigue (Vitality):</strong> {energy_fatigue}</li><li><strong>Emotional Well-Being:</strong> {emotional_wellbeing}</li><li><strong>Social Functioning:</strong> {social_functioning}</li><li><strong>Pain:</strong> {pain}</li><li><strong>General Health:</strong> {general_health}</li><li><strong>Reported Health Transition:</strong> {health_change}</li></ul>",
   "showTOC": true,
   "pages": [
     {
@@ -112,7 +119,7 @@ Each question uses various visible answers and scoring remains question-specific
           "name": "q1",
           "title": "In general, would you say your health is:",
           "isRequired": true,
-          "subdomain": "general_health",
+          "domain": "general_health",
           "choices": [
             { "value": 1, "text": "Excellent", "score": 100 },
             { "value": 2, "text": "Very good", "score": 75 },
@@ -126,7 +133,7 @@ Each question uses various visible answers and scoring remains question-specific
           "name": "q2",
           "title": "Compared to one year ago, how would you rate your health in general now?",
           "isRequired": true,
-          "subdomain": "health_change",
+          "domain": "health_change",
           "choices": [
             { "value": 1, "text": "Much better now than one year ago", "score": 100 },
             { "value": 2, "text": "Somewhat better now than one year ago", "score": 75 },
@@ -147,7 +154,7 @@ Each question uses various visible answers and scoring remains question-specific
           "name": "q3",
           "title": "Vigorous activities, such as running, lifting heavy objects, participating in strenuous sports",
           "isRequired": true,
-          "subdomain": "physical_functioning",
+          "domain": "physical_functioning",
           "choices": [
             { "value": 1, "text": "Yes, limited a lot", "score": 0 },
             { "value": 2, "text": "Yes, limited a little", "score": 50 },
@@ -159,7 +166,7 @@ Each question uses various visible answers and scoring remains question-specific
           "name": "q4",
           "title": "Moderate activities, such as moving a table, pushing a vacuum cleaner, bowling, or playing golf",
           "isRequired": true,
-          "subdomain": "physical_functioning",
+          "domain": "physical_functioning",
           "choices": [
             { "value": 1, "text": "Yes, limited a lot", "score": 0 },
             { "value": 2, "text": "Yes, limited a little", "score": 50 },
@@ -171,7 +178,7 @@ Each question uses various visible answers and scoring remains question-specific
           "name": "q5",
           "title": "Lifting or carrying groceries",
           "isRequired": true,
-          "subdomain": "physical_functioning",
+          "domain": "physical_functioning",
           "choices": [
             { "value": 1, "text": "Yes, limited a lot", "score": 0 },
             { "value": 2, "text": "Yes, limited a little", "score": 50 },
@@ -183,7 +190,7 @@ Each question uses various visible answers and scoring remains question-specific
           "name": "q6",
           "title": "Climbing several flights of stairs",
           "isRequired": true,
-          "subdomain": "physical_functioning",
+          "domain": "physical_functioning",
           "choices": [
             { "value": 1, "text": "Yes, limited a lot", "score": 0 },
             { "value": 2, "text": "Yes, limited a little", "score": 50 },
@@ -195,7 +202,7 @@ Each question uses various visible answers and scoring remains question-specific
           "name": "q7",
           "title": "Climbing one flight of stairs",
           "isRequired": true,
-          "subdomain": "physical_functioning",
+          "domain": "physical_functioning",
           "choices": [
             { "value": 1, "text": "Yes, limited a lot", "score": 0 },
             { "value": 2, "text": "Yes, limited a little", "score": 50 },
@@ -207,7 +214,7 @@ Each question uses various visible answers and scoring remains question-specific
           "name": "q8",
           "title": "Bending, kneeling, or stooping",
           "isRequired": true,
-          "subdomain": "physical_functioning",
+          "domain": "physical_functioning",
           "choices": [
             { "value": 1, "text": "Yes, limited a lot", "score": 0 },
             { "value": 2, "text": "Yes, limited a little", "score": 50 },
@@ -219,7 +226,7 @@ Each question uses various visible answers and scoring remains question-specific
           "name": "q9",
           "title": "Walking more than a mile",
           "isRequired": true,
-          "subdomain": "physical_functioning",
+          "domain": "physical_functioning",
           "choices": [
             { "value": 1, "text": "Yes, limited a lot", "score": 0 },
             { "value": 2, "text": "Yes, limited a little", "score": 50 },
@@ -231,7 +238,7 @@ Each question uses various visible answers and scoring remains question-specific
           "name": "q10",
           "title": "Walking several blocks",
           "isRequired": true,
-          "subdomain": "physical_functioning",
+          "domain": "physical_functioning",
           "choices": [
             { "value": 1, "text": "Yes, limited a lot", "score": 0 },
             { "value": 2, "text": "Yes, limited a little", "score": 50 },
@@ -243,7 +250,7 @@ Each question uses various visible answers and scoring remains question-specific
           "name": "q11",
           "title": "Walking one block",
           "isRequired": true,
-          "subdomain": "physical_functioning",
+          "domain": "physical_functioning",
           "choices": [
             { "value": 1, "text": "Yes, limited a lot", "score": 0 },
             { "value": 2, "text": "Yes, limited a little", "score": 50 },
@@ -255,7 +262,7 @@ Each question uses various visible answers and scoring remains question-specific
           "name": "q12",
           "title": "Bathing or dressing yourself",
           "isRequired": true,
-          "subdomain": "physical_functioning",
+          "domain": "physical_functioning",
           "choices": [
             { "value": 1, "text": "Yes, limited a lot", "score": 0 },
             { "value": 2, "text": "Yes, limited a little", "score": 50 },
@@ -274,7 +281,7 @@ Each question uses various visible answers and scoring remains question-specific
           "name": "q13",
           "title": "Cut down the amount of time you spent on work or other activities",
           "isRequired": true,
-          "subdomain": "role_physical",
+          "domain": "role_physical",
           "choices": [
             { "value": 1, "text": "Yes", "score": 0 },
             { "value": 2, "text": "No", "score": 100 }
@@ -285,7 +292,7 @@ Each question uses various visible answers and scoring remains question-specific
           "name": "q14",
           "title": "Accomplished less than you would like",
           "isRequired": true,
-          "subdomain": "role_physical",
+          "domain": "role_physical",
           "choices": [
             { "value": 1, "text": "Yes", "score": 0 },
             { "value": 2, "text": "No", "score": 100 }
@@ -296,7 +303,7 @@ Each question uses various visible answers and scoring remains question-specific
           "name": "q15",
           "title": "Were limited in the kind of work or other activities",
           "isRequired": true,
-          "subdomain": "role_physical",
+          "domain": "role_physical",
           "choices": [
             { "value": 1, "text": "Yes", "score": 0 },
             { "value": 2, "text": "No", "score": 100 }
@@ -307,7 +314,7 @@ Each question uses various visible answers and scoring remains question-specific
           "name": "q16",
           "title": "Had difficulty performing the work or other activities (for example, it took extra effort)",
           "isRequired": true,
-          "subdomain": "role_physical",
+          "domain": "role_physical",
           "choices": [
             { "value": 1, "text": "Yes", "score": 0 },
             { "value": 2, "text": "No", "score": 100 }
@@ -325,7 +332,7 @@ Each question uses various visible answers and scoring remains question-specific
           "name": "q17",
           "title": "Cut down the amount of time you spent on work or other activities",
           "isRequired": true,
-          "subdomain": "role_emotional",
+          "domain": "role_emotional",
           "choices": [
             { "value": 1, "text": "Yes", "score": 0 },
             { "value": 2, "text": "No", "score": 100 }
@@ -336,7 +343,7 @@ Each question uses various visible answers and scoring remains question-specific
           "name": "q18",
           "title": "Accomplished less than you would like",
           "isRequired": true,
-          "subdomain": "role_emotional",
+          "domain": "role_emotional",
           "choices": [
             { "value": 1, "text": "Yes", "score": 0 },
             { "value": 2, "text": "No", "score": 100 }
@@ -347,7 +354,7 @@ Each question uses various visible answers and scoring remains question-specific
           "name": "q19",
           "title": "Didn't do work or other activities as carefully as usual",
           "isRequired": true,
-          "subdomain": "role_emotional",
+          "domain": "role_emotional",
           "choices": [
             { "value": 1, "text": "Yes", "score": 0 },
             { "value": 2, "text": "No", "score": 100 }
@@ -358,7 +365,7 @@ Each question uses various visible answers and scoring remains question-specific
           "name": "q20",
           "title": "During the past 4 weeks, to what extent has your physical health or emotional problems interfered with your normal social activities with family, friends, neighbors, or groups?",
           "isRequired": true,
-          "subdomain": "social_functioning",
+          "domain": "social_functioning",
           "choices": [
             { "value": 1, "text": "Not at all", "score": 100 },
             { "value": 2, "text": "Slightly", "score": 75 },
@@ -378,7 +385,7 @@ Each question uses various visible answers and scoring remains question-specific
           "name": "q21",
           "title": "How much bodily pain have you had during the past 4 weeks?",
           "isRequired": true,
-          "subdomain": "pain",
+          "domain": "pain",
           "choices": [
             { "value": 1, "text": "None", "score": 100 },
             { "value": 2, "text": "Very mild", "score": 80 },
@@ -393,7 +400,7 @@ Each question uses various visible answers and scoring remains question-specific
           "name": "q22",
           "title": "During the past 4 weeks, how much did pain interfere with your normal work (including both work outside the home and housework)?",
           "isRequired": true,
-          "subdomain": "pain",
+          "domain": "pain",
           "choices": [
             { "value": 1, "text": "Not at all", "score": 100 },
             { "value": 2, "text": "A little bit", "score": 75 },
@@ -414,7 +421,7 @@ Each question uses various visible answers and scoring remains question-specific
           "name": "q23",
           "title": "Did you feel full of pep?",
           "isRequired": true,
-          "subdomain": "energy_fatigue",
+          "domain": "energy_fatigue",
           "choices": [
             { "value": 1, "text": "All of the time", "score": 100 },
             { "value": 2, "text": "Most of the time", "score": 80 },
@@ -429,7 +436,7 @@ Each question uses various visible answers and scoring remains question-specific
           "name": "q24",
           "title": "Have you been a very nervous person?",
           "isRequired": true,
-          "subdomain": "emotional_wellbeing",
+          "domain": "emotional_wellbeing",
           "choices": [
             { "value": 1, "text": "All of the time", "score": 0 },
             { "value": 2, "text": "Most of the time", "score": 20 },
@@ -444,7 +451,7 @@ Each question uses various visible answers and scoring remains question-specific
           "name": "q25",
           "title": "Have you felt so down in the dumps that nothing could cheer you up?",
           "isRequired": true,
-          "subdomain": "emotional_wellbeing",
+          "domain": "emotional_wellbeing",
           "choices": [
             { "value": 1, "text": "All of the time", "score": 0 },
             { "value": 2, "text": "Most of the time", "score": 20 },
@@ -459,7 +466,7 @@ Each question uses various visible answers and scoring remains question-specific
           "name": "q26",
           "title": "Have you felt calm and peaceful?",
           "isRequired": true,
-          "subdomain": "emotional_wellbeing",
+          "domain": "emotional_wellbeing",
           "choices": [
             { "value": 1, "text": "All of the time", "score": 100 },
             { "value": 2, "text": "Most of the time", "score": 80 },
@@ -474,7 +481,7 @@ Each question uses various visible answers and scoring remains question-specific
           "name": "q27",
           "title": "Did you have a lot of energy?",
           "isRequired": true,
-          "subdomain": "energy_fatigue",
+          "domain": "energy_fatigue",
           "choices": [
             { "value": 1, "text": "All of the time", "score": 100 },
             { "value": 2, "text": "Most of the time", "score": 80 },
@@ -489,7 +496,7 @@ Each question uses various visible answers and scoring remains question-specific
           "name": "q28",
           "title": "Have you felt downhearted and blue?",
           "isRequired": true,
-          "subdomain": "emotional_wellbeing",
+          "domain": "emotional_wellbeing",
           "choices": [
             { "value": 1, "text": "All of the time", "score": 0 },
             { "value": 2, "text": "Most of the time", "score": 20 },
@@ -504,7 +511,7 @@ Each question uses various visible answers and scoring remains question-specific
           "name": "q29",
           "title": "Did you feel worn out?",
           "isRequired": true,
-          "subdomain": "energy_fatigue",
+          "domain": "energy_fatigue",
           "choices": [
             { "value": 1, "text": "All of the time", "score": 0 },
             { "value": 2, "text": "Most of the time", "score": 20 },
@@ -519,7 +526,7 @@ Each question uses various visible answers and scoring remains question-specific
           "name": "q30",
           "title": "Have you been a happy person?",
           "isRequired": true,
-          "subdomain": "emotional_wellbeing",
+          "domain": "emotional_wellbeing",
           "choices": [
             { "value": 1, "text": "All of the time", "score": 100 },
             { "value": 2, "text": "Most of the time", "score": 80 },
@@ -534,7 +541,7 @@ Each question uses various visible answers and scoring remains question-specific
           "name": "q31",
           "title": "Did you feel tired?",
           "isRequired": true,
-          "subdomain": "energy_fatigue",
+          "domain": "energy_fatigue",
           "choices": [
             { "value": 1, "text": "All of the time", "score": 0 },
             { "value": 2, "text": "Most of the time", "score": 20 },
@@ -549,7 +556,7 @@ Each question uses various visible answers and scoring remains question-specific
           "name": "q32",
           "title": "During the past 4 weeks, how much of the time has your physical health or emotional problems interfered with your social activities (like visiting with friends, relatives, etc.)?",
           "isRequired": true,
-          "subdomain": "social_functioning",
+          "domain": "social_functioning",
           "choices": [
             { "value": 1, "text": "All of the time", "score": 0 },
             { "value": 2, "text": "Most of the time", "score": 25 },
@@ -570,7 +577,7 @@ Each question uses various visible answers and scoring remains question-specific
           "name": "q33",
           "title": "I seem to get sick a little easier than other people",
           "isRequired": true,
-          "subdomain": "general_health",
+          "domain": "general_health",
           "choices": [
             { "value": 1, "text": "Definitely true", "score": 0 },
             { "value": 2, "text": "Mostly true", "score": 25 },
@@ -584,7 +591,7 @@ Each question uses various visible answers and scoring remains question-specific
           "name": "q34",
           "title": "I am as healthy as anybody I know",
           "isRequired": true,
-          "subdomain": "general_health",
+          "domain": "general_health",
           "choices": [
             { "value": 1, "text": "Definitely true", "score": 100 },
             { "value": 2, "text": "Mostly true", "score": 75 },
@@ -598,7 +605,7 @@ Each question uses various visible answers and scoring remains question-specific
           "name": "q35",
           "title": "I expect my health to get worse",
           "isRequired": true,
-          "subdomain": "general_health",
+          "domain": "general_health",
           "choices": [
             { "value": 1, "text": "Definitely true", "score": 0 },
             { "value": 2, "text": "Mostly true", "score": 25 },
@@ -612,7 +619,7 @@ Each question uses various visible answers and scoring remains question-specific
           "name": "q36",
           "title": "My health is excellent",
           "isRequired": true,
-          "subdomain": "general_health",
+          "domain": "general_health",
           "choices": [
             { "value": 1, "text": "Definitely true", "score": 100 },
             { "value": 2, "text": "Mostly true", "score": 75 },
@@ -624,20 +631,12 @@ Each question uses various visible answers and scoring remains question-specific
       ]
     }
   ],
-  "showQuestionNumbers": "on",
+  "showQuestionNumbers": true,
   "completeText": "Submit Survey",
   "requiredMark": "(required)"
 }
 ```
 
-## Live Demo 
+### Live Demo 
 
-[View in Plunker](https://plnkr.co/edit/5b8xK6u2cv4Erp0w)
-
-### Learn More
-
-- [RAND SF-36 Health Survey Scoring Instructions](https://www.rand.org/health/surveys/mos/36-item-short-form/scoring.html)
-- [36-Item Short Form Survey Instrument (SF-36)](https://www.rand.org/health/surveys/mos/36-item-short-form/survey-instrument.html)
-- [SurveyJS Custom Properties](https://surveyjs.io/form-library/documentation/customize-question-types/add-custom-properties-to-a-form)
-- SurveyJS Events: [`onCompleting`](https://surveyjs.io/form-library/documentation/api-reference/survey-data-model#onCompleting)
-- [Designing Scored Surveys with SurveyJS](https://surveyjs.io/form-library/examples/create-a-scored-survey/)
+[View in Plunker](https://plnkr.co/edit/8Ra1GMeRIKJ9ehln)
