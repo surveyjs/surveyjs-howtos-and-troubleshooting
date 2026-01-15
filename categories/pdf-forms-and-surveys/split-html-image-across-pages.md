@@ -166,11 +166,15 @@ SurveyPDF.SurveyHelper.HTML_TO_IMAGE_QUALITY = 3;
       "elements": [
         {
           "type": "html",
-          "name": "largeImage",
-          "html": "<p>The image below is too tall for one PDF page:</p><img width='579px' height='1416px' src='https://api.surveyjs.io/private/Surveys/files?name=0920759b-f5cf-4651-827f-187fe17df20f'/>"
+          "name": "question1",
+          "html": "<p>The image below doesn't fit onto one PDF page.</p><img  width='579px' height='1416px' src='data:image/jpeg;base64,...'/>"
         }
       ]
     }
   ]
 }
 ```
+
+### Live Demo
+
+[View in Plunker](https://plnkr.co/edit/8W9OGmCembH1yvWD)
