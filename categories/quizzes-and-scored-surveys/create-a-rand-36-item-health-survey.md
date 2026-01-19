@@ -639,4 +639,4 @@ Each question defines its own answer choices and scoring logic. The `domain` pro
 
 ### Live Demo 
 
-[View in Plunker](https://plnkr.co/edit/8Ra1GMeRIKJ9ehln)
+[Open in Plunker](https://plnkr.co/edit/8Ra1GMeRIKJ9ehln)
