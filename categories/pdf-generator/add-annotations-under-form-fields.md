@@ -125,11 +125,11 @@ const surveyJson = {
 
 const survey = new Model(surveyJson);
 survey.addNavigationItem({
-    id: "download-pdf",
-    title: "Download PDF",
-    action: () => {
-        saveSurveyToPdf("surveyResult.pdf", survey);
-    }
+  id: "download-pdf",
+  title: "Download PDF",
+  action: () => {
+    saveSurveyToPdf("surveyResult.pdf", survey);
+  }
 });
 ```
 
