@@ -2,8 +2,7 @@
 
 ## Problem
 
-When you configure the [`acceptedTypes`](https://surveyjs.io/form-library/documentation/api-reference/file-model#acceptedTypes) property for a File Upload question in SurveyJS (e.g., to allow only `.pdf` files), the file chooser dialog filters visible files accordingly.
-However, users can still bypass this filter by selecting "All Files" and uploading unsupported file types.
+When you configure the [`acceptedTypes`](https://surveyjs.io/form-library/documentation/api-reference/file-model#acceptedTypes) property for a File Upload question in SurveyJS (e.g., to allow only `.pdf` files), the file chooser dialog filters visible files accordingly. However, users can still bypass this filter by selecting "All Files" and uploading unsupported file types.
 
 ## Solution
 
@@ -19,26 +18,44 @@ The example below accepts only PDF files and rejects all others.
 // ...
 
 survey.onUploadFiles.add((_, options) => {
-  const formData = new FormData();
-  cinst file = options.files[0];
-  if (!file || !file.name || file.name.toLowerCase().endsWith(".pdf")) {
-    formData.append(file.name, file);
-  } else {
-    options.callback([], ["Only PDF files are allowed"]);
+  const file = options.files?.[0];
+
+  if (!file) {
+    options.callback([], ["No file selected."]);
     return;
   }
-  const xhr = new XMLHttpRequest();
-  xhr.open("POST", "https://api.surveyjs.io/private/Surveys/uploadTempFiles");
-  xhr.onload = function () {
-    const data = JSON.parse(xhr.responseText);
-    options.callback(
-      "success",
-      options.files.map(function (file) {
-        return { file: file, content: data[file.name] };
-      })
-    );
-  };
-  xhr.send(formData);
+
+  if (!file.name?.toLowerCase().endsWith(".pdf")) {
+    options.callback([], ["Only PDF files are allowed."]);
+    return;
+  }
+
+  const formData = new FormData();
+  formData.append(file.name, file);
+
+  fetch("https://api.surveyjs.io/private/Surveys/uploadTempFiles", {
+    method: "POST",
+    body: formData,
+  })
+    .then((response) => {
+      if (!response.ok) {
+        throw new Error(`Upload failed with status ${response.status}`);
+      }
+      return response.json();
+    })
+    .then((data) => {
+      options.callback(
+        "success",
+        options.files.map((file) => ({
+          file,
+          content: data[file.name],
+        }))
+      );
+    })
+    .catch((error) => {
+      console.error("Upload error:", error);
+      options.callback([], ["An error occurred during file upload."]);
+    });
 });
 ```
 
