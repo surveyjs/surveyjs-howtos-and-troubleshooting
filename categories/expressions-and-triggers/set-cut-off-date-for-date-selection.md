@@ -2,39 +2,36 @@
 
 ## Problem
 
-Sometimes in surveys or forms, you want to restrict users from selecting certain dates based on the current time.
-
-For example, you might want to prevent users from picking tomorrow if it is already after 2 PM today. This ensures that responses are only collected for dates that are logically allowed.
+I need to restrict available dates based on the current time. For example, if it is already 2:00 PM or later, users should not be able to select tomorrow. In this case, the earliest available date must automatically shift to the day after tomorrow.
 
 ## Solution
 
-To implement this in SurveyJS, implement a [custom function](https://surveyjs.io/form-library/documentation/design-survey/conditional-logic#implement-a-custom-function) and use the [`minValueExpression`](https://surveyjs.io/form-library/documentation/api-reference/text-entry-question-model#minValueExpression) property of a date/datetime question.
-
-Steps:
-* Check the current time.
-* If it’s after the cutoff hour (2 PM), move the minimum selectable date to the day after tomorrow.
-* Otherwise, allow tomorrow as the earliest selectable date.
+In SurveyJS, you can implement time-dependent date constraints by creating a [custom function](https://surveyjs.io/form-library/documentation/design-survey/conditional-logic#implement-a-custom-function) and assigning it to the question's [`minValueExpression`](https://surveyjs.io/form-library/documentation/api-reference/text-entry-question-model#minValueExpression) property. The function should calculate the minimum selectable date based on the current time and update the question accordingly.
 
 ### Code Sample
 
 ```javascript
-import { FunctionFactory } from "survey-core";
+import { registerFunction } from "survey-core";
 
-// Register a custom function for cutoff date
-FunctionFactory.Instance.register("cutoffMinDate", function () {
-  const now = new Date();
-  const minDate = new Date();
+registerFunction({
+  name: "cutoffMinDate",
+  func: () => {
+    const now = new Date();
+    const minDate = new Date();
 
-  if (now.getHours() >= 14) {
-    // After 2 PM → earliest selectable date is day after tomorrow
-    minDate.setDate(minDate.getDate() + 2);
-  } else {
-    // Before 2 PM → earliest selectable date is tomorrow
-    minDate.setDate(minDate.getDate() + 1);
+    if (now.getHours() >= 14) {
+      // 2:00 PM or later → earliest selectable date is day after tomorrow
+      minDate.setDate(minDate.getDate() + 2);
+    } else {
+      // Before 2:00 PM → earliest selectable date is tomorrow
+      minDate.setDate(minDate.getDate() + 1);
+    }
+
+    // Return value in ISO format for datetime-local input...
+    return minDate.toISOString().slice(0, 16);
+    // ... or for date input
+    // return minDate.toISOString().slice(0, 10).
   }
-
-  // Return in ISO format for datetime-local input
-  return minDate.toISOString().slice(0, 16);
 });
 ```
 
@@ -48,7 +45,7 @@ FunctionFactory.Instance.register("cutoffMinDate", function () {
       "elements": [
         {
           "type": "text",
-          "name": "question4",
+          "name": "question1",
           "title": "Select a date",
           "inputType": "datetime-local",
           "minValueExpression": "cutoffMinDate()"
@@ -58,3 +55,5 @@ FunctionFactory.Instance.register("cutoffMinDate", function () {
   ]
 }
 ```
+
+With this configuration, the minimum selectable date automatically adjusts depending on whether the current time is before or after the defined cut-off (2:00 PM in this example).
