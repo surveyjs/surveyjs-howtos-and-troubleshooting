@@ -1,71 +1,64 @@
-# Add a “None of these” Option to an Image Picker (Exclusive Selection)
+# Add a "None of these" Option to an Image Picker in SurveyJS
 
 ## Problem
 
-When using an [Image Picker](https://surveyjs.io/form-library/examples/image-picker-question/) question with [`multiSelect`](https://surveyjs.io/form-library/documentation/api-reference/image-picker-question-model#multiSelect) enabled, respondents can choose multiple visual options. In some scenarios—such as logo recognition or brand association surveys—you may also want to include a 'None of these' option. This option allows respondents to indicate that none of the images match and stores a corresponding none item in the survey response.
-
-However, unlike the standard [Checkbox](https://surveyjs.io/form-library/examples/create-checkboxes-question-in-javascript/) question type, the Image Picker does not provide a built-in [`showNoneItem`](https://surveyjs.io/form-library/documentation/api-reference/checkbox-question-model#showNoneItem) property. As a result, users can accidentally select both an image and a 'None' option, producing conflicting responses.
-
-Requirements:
-- Selecting 'None of these' deselects all other images.
-- Selecting any image deselects 'None of these'.
+A [SurveyJS Image Picker](https://surveyjs.io/form-library/examples/image-picker-question/) question allows respondents to select one or multiple visual options. I need to add a "None of these" option that stores a distinct value in survey results, deselects all images when selected, and is automatically deselected when any image is selected.
 
 ## Solution
 
-You can achieve this behavior by combining:
-- An Image Picker question with [`multiSelect`](https://surveyjs.io/form-library/documentation/api-reference/image-picker-question-model#multiSelect) enabled.
-- A standalone Checkbox question that contains only a custom 'None of these' option.
-- Set up the [`resetValueIf`](https://surveyjs.io/form-library/documentation/api-reference/question#resetValueIf) property on both questions to make them mutually exclusive.
+Implement mutual exclusivity between the Image Picker and a separate Checkboxes question as follows:
 
-## Survey JSON Definition
+1. Add an Image Picker question to your survey.
+2. Add a standalone Checkboxes question that contains a single custom choice: "None of these".
+3. Configure the [`resetValueIf`](https://surveyjs.io/form-library/documentation/api-reference/question#resetValueIf) property on both questions so they clear each other's values.
+4. (Optional) Place both questions inside a Panel to display them under a shared title and present them as a single logical block.
+
+This approach keeps the data model explicit and avoids complex event handling.
+
+## Survey JSON Schema
 
 ```json
 {
-  "pages": [
+  "elements": [
     {
-      "name": "page1",
+      "type": "panel",
+      "name": "panel1",
+      "questionTitleLocation": "hidden",
+      "title": "Select all logos that apply to a statement",
       "elements": [
         {
-          "type": "panel",
-          "name": "panel1",
-          "questionTitleLocation": "hidden",
-          "title": "Select all logos that apply to a statement",
-          "elements": [
+          "type": "imagepicker",
+          "name": "logo",
+          "resetValueIf": "{noLogoSelected} notempty",
+          "choices": [
             {
-              "type": "imagepicker",
-              "name": "selectLogo",
-              "resetValueIf": "{noLogoSelected} notempty",
-              "choices": [
-                {
-                  "value": "l1",
-                  "text": "Logo 1",
-                  "imageLink": "logo1.png"
-                },
-                {
-                  "value": "l2",
-                  "text": "Logo 2",
-                  "imageLink": "logo2.png"
-                },
-                {
-                  "value": "l3",
-                  "text": "Logo 3",
-                  "imageLink": "logo3.png"
-                }
-              ],
-              "imageFit": "cover",
-              "showLabel": true,
-              "multiSelect": true
+              "value": "l1",
+              "text": "Logo 1",
+              "imageLink": "logo1.png"
             },
             {
-              "type": "checkbox",
-              "name": "noLogoSelected",
-              "resetValueIf": "{selectLogo} notempty",
-              "choices": [
-                {
-                  "value": "noneOfThese",
-                  "text": "None of these"
-                }
-              ]
+              "value": "l2",
+              "text": "Logo 2",
+              "imageLink": "logo2.png"
+            },
+            {
+              "value": "l3",
+              "text": "Logo 3",
+              "imageLink": "logo3.png"
+            }
+          ],
+          "imageFit": "cover",
+          "showLabel": true,
+          "multiSelect": true
+        },
+        {
+          "type": "checkbox",
+          "name": "noLogoSelected",
+          "resetValueIf": "{logo} notempty",
+          "choices": [
+            {
+              "value": "noneOfThese",
+              "text": "None of these"
             }
           ]
         }
@@ -77,4 +70,4 @@ You can achieve this behavior by combining:
 
 ## Live Demo
 
-[View in Plunker](https://plnkr.co/edit/zonGQaaOV7SXSjTX)
+[Open in Plunker](https://plnkr.co/edit/RTZ4q3pUzT1lz9qF)
