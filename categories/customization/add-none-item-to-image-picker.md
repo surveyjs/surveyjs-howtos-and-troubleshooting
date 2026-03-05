@@ -15,7 +15,7 @@ Implement mutual exclusivity between the Image Picker and a separate Checkboxes 
 
 This approach keeps the data model explicit and avoids complex event handling.
 
-## Survey JSON Schema
+### Survey JSON Schema
 
 ```json
 {
@@ -68,6 +68,6 @@ This approach keeps the data model explicit and avoids complex event handling.
 }
 ```
 
-## Live Demo
+### Live Demo
 
 [Open in Plunker](https://plnkr.co/edit/RTZ4q3pUzT1lz9qF)
