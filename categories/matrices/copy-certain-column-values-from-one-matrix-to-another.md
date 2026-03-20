@@ -12,6 +12,10 @@ You have two **dynamic matrices** in a SurveyJS form:
 - A row is added/removed  
 - A cell value changes  
 
+**Why `setValueExpression` or `valueName` do not work:**
+
+- `setValueExpression` updates the entire value of a target matrix. Therefore, `question2` receives a full copy of `question1`, rather than a subset of column values. As a result, user-entered values of other `question2` columns are reset, which is unwanted.  
+- `valueName` synchronizes values of two matrices. However, the task is to copy values from source into target and not to share values between two matrices.  
 
 ## Solution
 
