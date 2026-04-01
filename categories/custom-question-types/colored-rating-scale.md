@@ -1,28 +1,24 @@
-# Create a Colored Numeric Rating Scale (Custom Radiogroup Items)
+# Create a Colored Numeric Rating Scale
 
 ## Problem
 
-You want to create a rating scale that looks like this:
-
-1 → 10 with each number shown inside a colored block or dot, where colors gradually change (red → orange → yellow → green).
-
-The built-in SurveyJS Rating Scale shows numbers but does not support individual item colors. Slider with smileys uses only a fixed set of predefined colors. However, you want to full control over the color of each individual option (1 = red, 2 = dark orange, ..., 10 = green).
+I need a numeric rating scale (for example, from 1 to 10) in which each option has its own color. The built-in SurveyJS [Rating Scale](https://surveyjs.io/form-library/examples/rating-scale/) question does not support per-item color customization, and the Smileys variation is limited to a predefined color set. This makes it unsuitable when you require full control over individual option styling.
 
 ## Solution
 
-Use a Radiogroup question (single select) with a custom item template.
+Use a [Radio Button Group](https://surveyjs.io/form-library/examples/single-select-radio-button-group/) question with a custom item component that renders each option as a colored element.
 
-Steps:
+The implementation consists of the following steps:
 
-1. Register a custom `color` property on each choice (`"itemvalue"`) using the [Serializer API](https://surveyjs.io/form-library/documentation/customize-question-types/add-custom-properties-to-a-form).
-2. Create a custom React component that renders each radio item as a colored element showing the number.
-3. Assign this custom component to the question via [`itemComponent`](https://surveyjs.io/form-library/documentation/api-reference/radio-button-question-model#itemComponent).
-4. Define choices with `value` and `color` properties.
+1. Register a custom `color` property for choice options (`"itemvalue"`) using the [`Serializer` API](https://surveyjs.io/form-library/documentation/customize-question-types/add-custom-properties-to-a-form#add-custom-properties-to-an-existing-class).
+2. Create a custom component that renders each radio item as a colored element displaying its value.
+3. Assign this custom component to the question via the [`itemComponent`](https://surveyjs.io/form-library/documentation/api-reference/radio-button-question-model#itemComponent) property.
+4. Specify colors for each choice in the `choices` array.
 
 ### Code Sample
 
 ```javascript
-// Helper to convert hex to rgb values (for rgba)
+// Converts HEX color to RGB string (used for rgba values)
 function hexToRgb(hex) {
   const cleanHex = hex.replace("#", "");
   const bigint = parseInt(cleanHex, 16);
@@ -32,10 +28,10 @@ function hexToRgb(hex) {
   return `${r}, ${g}, ${b}`;
 }
 
-// 1. Register custom color property on choices
+// 1. Register custom `color` property on choice options
 Survey.Serializer.addProperty("itemvalue", "color");
 
-// 2. Create custom radio item renderer
+// 2. Create a component for rendering custom radio items
 class CustomRadioItem extends SurveyReact.SurveyQuestionRadioItem {
   get item() {
     return this.props.item;
@@ -81,7 +77,6 @@ class CustomRadioItem extends SurveyReact.SurveyQuestionRadioItem {
             value={item.value}
             onChange={handleOnChange}
           />
-
           <div className="item-content">
             <div className="item-text">{item.text || item.value}</div>
             <span className="radio-outer">
@@ -94,7 +89,6 @@ class CustomRadioItem extends SurveyReact.SurveyQuestionRadioItem {
   }
 }
 
-// 3. Register the custom component
 SurveyReact.ReactElementFactory.Instance.registerElement(
   "custom-radio-item",
   (props) => React.createElement(CustomRadioItem, props)
@@ -102,6 +96,7 @@ SurveyReact.ReactElementFactory.Instance.registerElement(
 ```
 
 ### Survey JSON Schema
+
 ```json
 {
   "widthMode": "static",
@@ -114,8 +109,10 @@ SurveyReact.ReactElementFactory.Instance.registerElement(
           "type": "radiogroup",
           "name": "rating-colored",
           "title": "How would you rate your experience?",
+          // 3. Assign the custom component to the question
           "itemComponent": "custom-radio-item",
           "colCount": 0,
+          // 4. Specify colors for each choice
           "choices": [
             { "value": 1, "text": "1", "color": "#FF0000" },
             { "value": 2, "text": "2", "color": "#FF3300" },
@@ -134,17 +131,24 @@ SurveyReact.ReactElementFactory.Instance.registerElement(
   ]
 }
 ```
-### Required CSS
 
-Apply custom styles to the radiogroup by adding a CSS class via the [`SurveyModel.onUpdateQuestionCssClasses`](https://surveyjs.io/form-library/documentation/api-reference/survey-data-model#onUpdateQuestionCssClasses) event:
+### Apply Custom Styles
+
+To scope styles to this question, assign a custom CSS class using the [`onUpdateQuestionCssClasses`](https://surveyjs.io/form-library/documentation/api-reference/survey-data-model#onUpdateQuestionCssClasses) event:
+
 ```js
-survey.onUpdateQuestionCssClasses.add((sender, options) => {
+// ...
+// Omitted: `Survey.Model` creation
+// ...
+survey.onUpdateQuestionCssClasses.add((_, options) => {
   if (options.question.name === "rating-colored") {
     options.cssClasses.root += " coloredRadiogroup";
   }
 });
 ```
-Example CSS (add to your stylesheet):
+
+Add the following styles to your stylesheet:
+
 ```css
 .coloredRadiogroup .item-root {
   display: inline-block;
@@ -303,4 +307,4 @@ Example CSS (add to your stylesheet):
 
 ## Live Demo
 
-[View in CodeSandbox](https://codesandbox.io/p/devbox/vigilant-river-32d3mq)
+[Open in CodeSandbox](https://codesandbox.io/p/devbox/vigilant-river-32d3mq)
