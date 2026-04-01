@@ -1,103 +1,109 @@
-# How to Render Markdown Static Texts in a Survey
+# Render Markdown in PDF
 
 ## Problem
 
-You want to display rich formatted instructions, descriptions, or comments in a survey using Markdown. Survey fields should support dynamic values like user name, date, or ID, and render properly in a PDF or web interface.
+I need to display richly formatted text (instructions, descriptions, or comments) defined in Markdown within a SurveyJS form. This content may include dynamic values (for example, user name or current date) and must render correctly both in the web UI and in generated PDF documents.
 
 ## Solution
 
-Use SurveyJS for survey definitions and a third-party Markdown-to-HTML JavaScript converter to convert Markdown text into HTML for rendering. This allows you to use bold, italic, and inline dynamic values while keeping the survey business-ready.
+Use SurveyJS for form configuration and convert Markdown to HTML at runtime using a third-party library. This approach enables Markdown syntax (bold, italic, etc.) and supports dynamic expressions while ensuring consistent rendering in both environments.
 
-Steps:
+Implementation steps:
 
-1. Define your survey JSON and include Markdown-enabled descriptions.
-2. Optionally: Use expression fields for dynamic values like current date.
-3. Use a third-party Markdown-to-HTML JavaScript converter to convert Markdown to HTML when rendering. In this demo, markdownit is used.
-4. Optionally sanitize the HTML before displaying it.
+1. Define your survey JSON and include Markdown content in titles or descriptions.
+2. Use expression questions to provide dynamic values (for example, current date).
+3. Convert Markdown to HTML during rendering using a third-party library (for example,[markdown-it](https://github.com/markdown-it/markdown-it)).
+4. Sanitize the generated HTML before assigning it to the output.
 
 ### Code Sample
 
 ```javascript
 import markdownit from "markdown-it";
+import { SurveyPDF } from "survey-pdf";
+
+const surveyJson = { /* Survey JSON schema */ };
+const pdfOptions = { /* PDF configuration */ };
 
 const converter = markdownit({
-  html: true, // Support HTML tags in the source
+  html: true, // Allow HTML in Markdown source
 });
 
-const surveyPDF = new SurveyPDF(json, options);
+const surveyPDF = new SurveyPDF(surveyJson, pdfOptions);
 
-// Include custom values in a survey PDF document
+// Provide values for dynamic placeholders
 surveyPDF.setValue("id", "123");
 surveyPDF.setValue("userName", "User Name");
 
 surveyPDF.onTextMarkdown.add((_, options) => {
   // Convert Markdown to HTML
   let str = converter.renderInline(options.text);
-  // Optionally sanitize the HTML markup here
+  // ...
+  // Omitted: HTML sanitization
+  // ...
   options.html = str;
 });
 ```
 
 ### Survey JSON Schema
 
-```
+```json
 {
-  title: "User Feedback Survey",
-  description: `Name: **{userName}**. Today's date: **{todaysDate}**. ID: **{id}**`,
-  pages: [
+  "title": "User Feedback Survey",
+  "description": "Name: **{userName}**. Today's date: **{todaysDate}**. ID: **{id}**",
+  "pages": [
     {
-      name: "user_info",
-      elements: [
+      "name": "user_info",
+      "elements": [
         {
-          type: "expression",
-          name: "todaysDate",
-          visible: false,
-          expression: "currentDate()",
-          displayStyle: "date"
+          "type": "expression",
+          "name": "todaysDate",
+          "visible": false,
+          "expression": "currentDate()",
+          "displayStyle": "date"
         },
         {
-          type: "text",
-          name: "name",
-          title: "Name",
-          description: "Enter your full name.",
-          isRequired: true
+          "type": "text",
+          "name": "name",
+          "title": "Name",
+          "description": "Enter your full name.",
+          "isRequired": true
         },
         {
-          type: "text",
-          name: "label",
-          title: "Label",
-          description: "Enter the relevant label for your role or department."
+          "type": "text",
+          "name": "label",
+          "title": "Label",
+          "description": "Enter the relevant label for your role or department."
         },
         {
-          type: "text",
-          name: "date",
-          title: "Date",
-          description: "Select today's date.",
-          inputType: "date"
+          "type": "text",
+          "name": "date",
+          "title": "Date",
+          "description": "Select today's date.",
+          "inputType": "date"
         },
         {
-          type: "text",
-          name: "id",
-          title: "ID",
-          description: "Enter your unique ID."
+          "type": "text",
+          "name": "id",
+          "title": "ID",
+          "description": "Enter your unique ID."
         }
       ]
     },
     {
-      name: "feedback",
-      elements: [
+      "name": "feedback",
+      "elements": [
         {
-          type: "comment",
-          name: "comments",
-          title: "Please provide your feedback",
-          description: "Share your thoughts about our product or service. Markdown is supported here as well."
+          "type": "comment",
+          "name": "comments",
+          "title": "Please provide your feedback",
+          "description": "Share your thoughts about our product or service. Markdown is supported here as well."
         },
         {
-          type: "rating",
-          name: "satisfaction",
-          title: "Overall satisfaction",
-          minRateDescription: "Very dissatisfied",
-          maxRateDescription: "Very satisfied"
+          "type": "rating",
+          "name": "satisfaction",
+          "title": "Overall satisfaction",
+          "minRateDescription": "Very dissatisfied",
+          "maxRateDescription": "Very satisfied"
         }
       ]
     }
@@ -107,10 +113,9 @@ surveyPDF.onTextMarkdown.add((_, options) => {
 
 ## Live Demo
 
-[View in CodeSandbox](https://codesandbox.io/p/sandbox/pensive-noether-gdk8sh?file=%2Fsrc%2Findex.js%3A28%2C3-39%2C6)
+[Open in CodeSandbox](https://codesandbox.io/p/sandbox/pensive-noether-gdk8sh?file=%2Fsrc%2Findex.js%3A28%2C3-39%2C6)
 
 ## Learn More
 
-- [markdown-it](https://github.com/markdown-it/markdown-it)
-- [Convert Markdown to HTML with markdown-it](https://surveyjs.io/form-library/examples/edit-survey-questions-markdown/)
-- [Convert Markdown to HTML with Marked](https://surveyjs.io/form-library/examples/enable-markdown-in-surveys/)
+- [Demo: Convert Markdown to HTML with markdown-it](https://surveyjs.io/form-library/examples/edit-survey-questions-markdown/)
+- [Demo: Convert Markdown to HTML with Marked](https://surveyjs.io/form-library/examples/enable-markdown-in-surveys/)
