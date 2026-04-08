@@ -1,41 +1,39 @@
-# Copy Selected Columns from One Dynamic Matrix to Another in SurveyJS
+# Copy Selected Columns Between Dynamic Matrices in SurveyJS
 
 ## Problem
 
-You have two **dynamic matrices** in a SurveyJS form:
+I have two Dynamic Matrix questions in a SurveyJS form:
 
-- **question1**: the source matrix with columns `a, b, c, d, ...`  
-- **question2**: a target matrix inside a `paneldynamic` with columns `a1, a, b, c, d, ...`
+- `question1` &ndash; The source matrix with columns `a`, `b`, `c`, ...
+- `question2` &ndash; The target matrix with columns `a1`, `a`, `b`, `c`, ...
 
-**Goal:** Copy only certain columns (`a, b, c`) from `question1` to `question2` automatically whenever:
+I want to synchronize only specific columns (`a`, `b`, and `c`) from `question1` to `question2`. The synchronization should occur automatically when a row is added or removed or a cell value changes.
 
-- A row is added/removed  
-- A cell value changes  
-
-**Why `setValueExpression` or `valueName` do not work:**
-
-- `setValueExpression` updates the entire value of a target matrix. Therefore, `question2` receives a full copy of `question1`, rather than a subset of column values. As a result, user-entered values of other `question2` columns are reset, which is unwanted.  
-- `valueName` synchronizes values of two matrices. However, the task is to copy values from source into target and not to share values between two matrices.  
+Standard approaches such as `setValueExpression` or `valueName` are not suitable here because they only support full-value binding, not selective column mapping.
 
 ## Solution
 
-1. Add a **custom property** `mergeWithMatrix` to identify the source matrix.  
-2. Track dependencies: any matrix using `mergeWithMatrix` should subscribe to source updates.  
-3. Update the target matrix programmatically on:  
-   - `onMatrixRowAdded`  
-   - `onMatrixRowRemoved`  
-   - `onMatrixCellValueChanging`
-   
+To implement this functionality, [add a custom property](https://surveyjs.io/form-library/documentation/customize-question-types/add-custom-properties-to-a-form) `mergeWithMatrix` that will identify the source matrix, establish a dependency between the source and target matrices by adding the targets to a list on the source matrix, and update the target matrix programmatically when the following events are raised: [`onMatrixRowAdded`](https://surveyjs.io/form-library/documentation/api-reference/survey-data-model#onMatrixRowAdded), [`onMatrixRowRemoved`](https://surveyjs.io/form-library/documentation/api-reference/survey-data-model#onMatrixRowRemoved), [`onMatrixCellValueChanging`](https://surveyjs.io/form-library/documentation/api-reference/survey-data-model#onMatrixCellValueChanging).
+
+Implement a custom synchronization mechanism that:
+
+1. Identifies a source matrix using a [custom property](https://surveyjs.io/form-library/documentation/customize-question-types/add-custom-properties-to-a-form) (`mergeWithMatrix`).
+2. Tracks dependencies between matrices.
+3. Synchronizes row structure and selected column values using SurveyJS events:
+   - [`onMatrixRowAdded`](https://surveyjs.io/form-library/documentation/api-reference/survey-data-model#onMatrixRowAdded)
+   - [`onMatrixRowRemoved`](https://surveyjs.io/form-library/documentation/api-reference/survey-data-model#onMatrixRowRemoved)
+   - [`onMatrixCellValueChanging`](https://surveyjs.io/form-library/documentation/api-reference/survey-data-model#onMatrixCellValueChanging)
+
 ### Code Sample
 
 ```javascript
-// 1. Add custom property to matrixdynamic
+// 1. Add a custom property to identify the source matrix
 Survey.Serializer.addProperty("matrixdynamic", {
   name: "mergeWithMatrix:question", 
   category: "general"
 });
 
-// 2. Merge selected columns from source to destination
+// 2. Copy selected columns from source to destination
 function mergeMatrix(src, dest) {
   const srcValue = src.value;
   if (!Array.isArray(srcValue)) return;
@@ -54,12 +52,13 @@ function mergeMatrix(src, dest) {
   dest.value = destValue;
 }
 
-// 3. Track matrices dependent on a source matrix
+// 3. Track dependent matrices on the source
 function addToMatrixDependencies(src, dest) {
   if (!Array.isArray(src.matrixList)) src.matrixList = [];
   src.matrixList.push(dest);
 }
 
+// 4. Register dependencies and perform initial sync
 function updateMatrixList(q) {
   if (q.isDescendantOf("matrixdynamic") && q.mergeWithMatrix) {
     const srcMatrix = survey.getQuestionByName(q.mergeWithMatrix);
@@ -70,32 +69,39 @@ function updateMatrixList(q) {
   }
 }
 
-// 4. Get active dependent matrices
+// 5. Get active dependent matrices
 function getDependentMatrices(matrix) {
   const res = matrix.matrixList || [];
   return res.filter(m => !m.isDisposed);
 }
 
-// 5. Initialize existing matrices
-survey.getAllQuestions(false, false, true).forEach(q => updateMatrixList(q));
+// 6. Initialize existing matrices
+survey.getAllQuestions(false, false, true).forEach(q => {
+  updateMatrixList(q)
+});
 
-// 6. Update matrices on creation
-survey.onQuestionCreated.add((sender, options) => {
+// 7. Handle dynamically created questions
+survey.onQuestionCreated.add((_, options) => {
   updateMatrixList(options.question);
 });
 
-// 7. Sync on row addition/removal
-survey.onMatrixRowAdded.add((sender, options) => {
-  getDependentMatrices(options.question).forEach(m => m.addRow(false));
+// 8. Synchronize row structure
+survey.onMatrixRowAdded.add((_, options) => {
+  getDependentMatrices(options.question).forEach(m => {
+    m.addRow(false)
+  });
 });
-survey.onMatrixRowRemoved.add((sender, options) => {
-  getDependentMatrices(options.question).forEach(m => m.removeRow(options.rowIndex, false));
+survey.onMatrixRowRemoved.add((_, options) => {
+  getDependentMatrices(options.question).forEach(m => {
+    m.removeRow(options.rowIndex, false)
+  });
 });
 
-// 8. Sync on cell value change
-survey.onMatrixCellValueChanging.add((sender, options) => {
+// 9. Synchronize cell values
+survey.onMatrixCellValueChanging.add((_, options) => {
   const rowIndex = options.row.rowIndex - 1;
   const colName = options.columnName;
+
   getDependentMatrices(options.question).forEach(m => {
     const rows = m.visibleRows;
     if (rowIndex < rows.length) {
@@ -121,7 +127,14 @@ survey.onMatrixCellValueChanging.add((sender, options) => {
           "type": "matrixdynamic",
           "name": "question1",
           "title": "Source Matrix",
-          "columns": [{"name":"a"},{"name":"b"},{"name":"c"},{"name":"x"},{"name":"y"},{"name":"z"}],
+          "columns": [
+            { "name": "a" },
+            { "name": "b" },
+            { "name": "c" },
+            { "name": "x" },
+            { "name": "y" },
+            { "name": "z" }
+          ],
           "cellType": "text"
         },
         {
@@ -132,8 +145,16 @@ survey.onMatrixCellValueChanging.add((sender, options) => {
             {
               "type": "matrixdynamic",
               "name": "question2",
+              "title": "Target Matrix",
               "mergeWithMatrix": "question1",
-              "columns": [{"name":"a1"},{"name":"a"},{"name":"b"},{"name":"c"},{"name":"d"},{"name":"e"}],
+              "columns": [
+                { "name": "a1" },
+                { "name": "a" },
+                { "name": "b" },
+                { "name": "c" },
+                { "name": "d" },
+                { "name": "e" }
+              ],
               "cellType": "text"
             }
           ]
@@ -143,9 +164,3 @@ survey.onMatrixCellValueChanging.add((sender, options) => {
   ]
 }
 ```
-
-## Learn More
-* [`onMatrixCellValueChanging`](https://surveyjs.io/form-library/documentation/api-reference/survey-data-model#onMatrixCellValueChanging)
-* [`onMatrixRowAdded`](https://surveyjs.io/form-library/documentation/api-reference/survey-data-model#onMatrixRowAdded)
-* [`onMatrixRowRemoved`](https://surveyjs.io/form-library/documentation/api-reference/survey-data-model#onMatrixRowRemoved)
-* [Custom Properties in SurveyJS](https://surveyjs.io/form-library/documentation/customize-question-types/add-custom-properties-to-a-form)
