@@ -2,13 +2,11 @@
 
 ## Problem
 
-You need to collect repeated sets of information (for example, family member details), but the number of entries is unknown in advance. Instead of asking users to manually add panels, you want the survey to automatically generate the exact number of panels based on a numeric input provided by the user.
+I need to collect repeated sets of information (for example, family member details), but the number of entries is not known in advance. Instead of requiring respondents to manually add panels, I want the survey to automatically generate the exact number of panels based on a numeric input.
 
 ## Solution
 
-Use a [Text (number)](https://surveyjs.io/form-library/examples/numeric-entry-question/) question to capture the desired number of items and bind it to a [Dynamic Panel](https://surveyjs.io/form-library/examples/questiontype-paneldynamic/) using the `bindings.panelCount` property.
-
-When a respondent enters a number, the Dynamic Panel automatically creates that many panels. Each panel contains a predefined set of questions.
+Use a [Single-Line Input (Numeric)](https://surveyjs.io/form-library/examples/numeric-entry-question/) question to capture the desired number of items and bind it to a [Dynamic Panel](https://surveyjs.io/form-library/examples/duplicate-group-of-fields-in-form/) using the `bindings.panelCount` property.
 
 ## Survey JSON Schema
 
@@ -33,7 +31,7 @@ When a respondent enters a number, the Dynamic Panel automatically creates that 
           "title": "Please provide the details of your immediate and extended family members.",
           "description": "Do not use initials",
           "bindings": {
-            "panelCount": "relatives-source"
+            "panelCount": "relatives-source" // Generate the specified number of panels
           },
           "templateElements": [
             {
@@ -103,14 +101,6 @@ When a respondent enters a number, the Dynamic Panel automatically creates that 
         }
       ]
     }
-  ],
-  "partialSendEnabled": true,
-  "questionErrorLocation": "bottom",
-  "progressBarShowPageTitles": true,
-  "progressBarShowPageNumbers": true,
-  "checkErrorsMode": "onValueChanged",
-  "completeText": "Submit Form",
-  "widthMode": "static",
-  "width": "1200"
+  ]
 }
 ```
