@@ -27,7 +27,9 @@ function LayoutEngine() {
     start: function () { },
     stop: function () { },
     update: function () { },
-    destroy: function () { }
+    destroy: function () { },
+    add: function () {},
+    remove: function () {}
   };
 }
 
@@ -45,4 +47,4 @@ vizPanel.render("surveyDashboardContainer");
 
 ### Live Demo
 
-[Open in Plunker](https://plnkr.co/edit/ITfHQ1u7nWjoaIED)
+[Open in Plunker](https://plnkr.co/edit/hyGHzBbJXObc0gPc)
