@@ -2,15 +2,15 @@
 
 ## Problem
 
-When multiple documents are signed in sequence by the same person, signatures drawn with a mouse or trackpad often look different on each document. This inconsistency can be problematic in legal or compliance workflows where a uniform signature appearance is expected.
+When the same person signs multiple documents, signatures drawn with a mouse or trackpad often vary from one document to another. This inconsistency can be undesirable in legal, compliance, or business workflows that require a uniform signature appearance.
 
-You need a way to let respondents type their name and display it in a consistent script-style font, instead of capturing a freehand image signature.
+I need a way to let respondents type their name and display it in a consistent script-style font instead of capturing a handwritten signature.
 
 ## Solution
 
-Use a [Single-Line Input](https://surveyjs.io/form-library/documentation/api-reference/text-entry-question-model) question for the signature field. Handle the [`onUpdateQuestionCssClasses`](https://surveyjs.io/form-library/documentation/api-reference/survey-data-model#onUpdateQuestionCssClasses) event to attach a custom CSS class to that question, then style the input with a widely available web font (for example, [Great Vibes](https://fonts.google.com/specimen/Great+Vibes) from Google Fonts).
+Use a [Single-Line Input](https://surveyjs.io/form-library/documentation/api-reference/text-entry-question-model) question instead of a Signature Pad. Handle the [`onUpdateQuestionCssClasses`](https://surveyjs.io/form-library/documentation/api-reference/survey-data-model#onUpdateQuestionCssClasses) event to assign a custom CSS class to the question, then style the input with a script font such as [Great Vibes](https://fonts.google.com/specimen/Great+Vibes).
 
-Respondents type their name; the input renders it in a cursive font that looks like a script signature and stays consistent across every document.
+Respondents type their name, and the input renders it in a cursive font that resembles a handwritten signature while maintaining a consistent appearance across all documents.
 
 ### Survey JSON Schema
 
@@ -27,35 +27,37 @@ Add a Single-Line Input question for the typed signature:
 
 ### Apply a Custom CSS Class
 
-Assign a custom class to the signature question so styles apply only to that field:
+Assign a custom CSS class to the signature question so the styles affect only its input field:
 
 ```javascript
 // ...
 // Omitted: `Survey.Model` creation
 // ...
-survey.onUpdateQuestionCssClasses.add((sender, options) => {
+survey.onUpdateQuestionCssClasses.add((_, options) => {
   if (options.question.name === "signature") {
-    options.cssClasses.root += " signatureInput";
+    options.cssClasses.root += " signature-input";
   }
 });
 ```
 
 ### Style the Input with a Script Font
 
-Load an accessible web font and scope styles to the custom class. Great Vibes is available through Google Fonts and renders on most modern browsers and devices:
+Import a script font and apply it to the custom CSS class:
 
 ```css
 @import url('https://fonts.googleapis.com/css2?family=Great+Vibes&display=swap');
 
-.signatureInput input {
+.signature-input input {
   font-family: 'Great Vibes', cursive;
   font-size: 24px;
 }
 ```
 
-### Optional: Let Respondents Choose a Signature Method
+[Open in Plunker](https://plnkr.co/edit/pv3IwxvCbZ9HFsHn)
 
-To offer both a signature pad and a typed script signature, add a choice question and show the appropriate field based on the selection:
+### Let Respondents Choose a Signature Method (Optional)
+
+If you want to support both handwritten and typed signatures, add a choice question that lets respondents select their preferred signing method and display the appropriate input:
 
 ```json
 {
@@ -85,9 +87,6 @@ To offer both a signature pad and a typed script signature, add a choice questio
 }
 ```
 
-Apply the script font only to the typed signature question using the `onUpdateQuestionCssClasses` handler shown above.
+Apply the custom CSS class only to the typed signature question by using the `onUpdateQuestionCssClasses` event handler shown above.
 
-### Live Demos
-
-- [Text entry with script font styling](https://plnkr.co/edit/pv3IwxvCbZ9HFsHn)
-- [Choice between signature pad and typed name](https://plnkr.co/edit/z9r60dy35vlz6KTN)
+[Open in Plunker](https://plnkr.co/edit/z9r60dy35vlz6KTN)
