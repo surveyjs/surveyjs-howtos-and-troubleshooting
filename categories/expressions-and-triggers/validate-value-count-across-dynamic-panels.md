@@ -44,7 +44,7 @@ The example below limits the `'JavaScript'` skill to at most three employee reco
             {
               "type": "expression",
               "text": "You can select 'JavaScript' in no more than 3 employee records.",
-              "expression": "countInArray({employees}, 'skills', {skills} allof 'JavaScript') <= 3"
+              "expression": "countInArray({employees}, 'skills', {skills} contains 'JavaScript') <= 3"
             }
           ],
           "templateElements": [
