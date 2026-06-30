@@ -2,20 +2,19 @@
 
 ## Problem
 
-I need a numeric rating scale (for example, from 1 to 10) in which each option has its own color. 
+I need a numeric rating scale (for example, from 1 to 10) in which each rating option has its own color. The Smileys variation of the built-in SurveyJS [Rating Scale](https://surveyjs.io/form-library/examples/rating-scale/) question uses a predefined color palette, making it unsuitable when you need full control over the appearance of individual rating items.
 
 ## Solution
 
-SurveyJS lets you override how each rating item is rendered via the [`itemComponent`](https://surveyjs.io/form-library/documentation/api-reference/rating-scale-question-model#itemComponent) property. The custom component is registered with `ReactElementFactory` and referenced in the survey JSON:
-```json
-"itemComponent": "custom-rate-item"
-```
-The implementation consists of the following steps:
+SurveyJS Rating Scale exposes the [`itemComponent`](https://surveyjs.io/form-library/documentation/api-reference/rating-scale-question-model#itemComponent) property, which allows you to replace the default renderer for individual rating items with a custom React component. Register the component with `ReactElementFactory`, then reference it in the survey JSON.
 
-1. Create a custom rating item component that extends `SurveyElementBase` and registers it with `ReactElementFactory`.
-3. Import the custom item component in your survey component so the registration runs at startup.
-4. Reference the registered component name in the Rating question's `itemComponent` property.
-5. Add CSS to size the icons and define hover effects.
+To implement a colored rating scale, do the following:
+
+1. Create a custom rating item component by extending `SurveyElementBase` and register it with `ReactElementFactory`.
+2. Import the custom item component in your survey component so that it is registered during initialization.
+3. Set the Rating Scale's `itemComponent` property to the registered component name.
+4. Set the Rating Scale's [`displayMode`](https://surveyjs.io/form-library/documentation/api-reference/rating-scale-question-model#displayMode) property to `"buttons"` to prevent rendering the question as a dropdown.
+5. Add CSS to define the appearance and hover behavior of the rating items.
 
 ### Code Sample
 
@@ -45,10 +44,7 @@ interface ColoredRatingItemProps {
   isDisplayMode: boolean;
 }
 
-class ColoredRatingItem extends SurveyElementBase<
-  ColoredRatingItemProps,
-  object
-> {
+class ColoredRatingItem extends SurveyElementBase<ColoredRatingItemProps, object> {
   get question(): QuestionRatingModel {
     return this.props.question;
   }
@@ -123,41 +119,40 @@ export default ColoredRatingItem;
 
 ```json
 {
-  widthMode: "static",
-  width: "1000px",
-  showQuestionNumbers: "off",
-  pages: [
+  "pages": [
     {
-      name: "page1",
-      elements: [
+      "name": "page1",
+      "elements": [
         {
-          type: "rating",
-          name: "rating-colored",
-          title: "How would you rate your experience?",
-          itemComponent: "custom-rate-item",
-          displayMode: "buttons",
-          rateValues: [
-            { value: 1, text: "1", color: "#FF0000" },
-            { value: 2, text: "2", color: "#FF3300" },
-            { value: 3, text: "3", color: "#FF6600" },
-            { value: 4, text: "4", color: "#FF9900" },
-            { value: 5, text: "5", color: "#FFCC00" },
-            { value: 6, text: "6", color: "#FFFF00" },
-            { value: 7, text: "7", color: "#99FF00" },
-            { value: 8, text: "8", color: "#66FF00" },
-            { value: 9, text: "9", color: "#33FF00" },
-            { value: 10, text: "10", color: "#00FF00" },
-          ],
-        },
-      ],
-    },
+          "type": "rating",
+          "name": "rating-colored",
+          "title": "How would you rate your experience?",
+          "itemComponent": "custom-rate-item",
+          "displayMode": "buttons",
+          "rateValues": [
+            { "value": 1, "color": "#FF0000" },
+            { "value": 2, "color": "#FF3300" },
+            { "value": 3, "color": "#FF6600" },
+            { "value": 4, "color": "#FF9900" },
+            { "value": 5, "color": "#FFCC00" },
+            { "value": 6, "color": "#FFFF00" },
+            { "value": 7, "color": "#99FF00" },
+            { "value": 8, "color": "#66FF00" },
+            { "value": 9, "color": "#33FF00" },
+            { "value": 10, "color": "#00FF00" }
+          ]
+        }
+      ]
+    }
   ],
+  "widthMode": "static",
+  "width": "1000px"
 }
 ```
 
 ### Apply Custom Styles
 
-To scope styles to this question, assign a custom CSS class using the [`onUpdateQuestionCssClasses`](https://surveyjs.io/form-library/documentation/api-reference/survey-data-model#onUpdateQuestionCssClasses) event:
+Assign a custom CSS class to the Rating Scale by handling the [`onUpdateQuestionCssClasses`](https://surveyjs.io/form-library/documentation/api-reference/survey-data-model#onUpdateQuestionCssClasses) event:
 
 ```js
 // ...
@@ -170,7 +165,7 @@ survey.onUpdateQuestionCssClasses.add((_sender, options) => {
 });
 ```
 
-Add the following styles to your stylesheet:
+Then add the following CSS rules:
 
 ```css
 /* Scoped to the rating-colored question via onUpdateQuestionCssClasses */
@@ -269,24 +264,6 @@ Add the following styles to your stylesheet:
 
 .coloredRadiogroup fieldset {
   gap: 8px;
-}
-
-.strawberry-rating-item__icon-wrapper {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 56px;
-  height: 56px;
-}
-
-.strawberry-rating-item__icon {
-  width: 48px;
-  height: 48px;
-  transition: opacity 0.15s ease, filter 0.15s ease, transform 0.15s ease;
-}
-
-.sd-rating__item--allowhover:hover .strawberry-rating-item__icon {
-  transform: scale(1.08);
 }
 ```
 
