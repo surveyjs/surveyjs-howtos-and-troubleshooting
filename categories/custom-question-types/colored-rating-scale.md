@@ -2,24 +2,32 @@
 
 ## Problem
 
-I need a numeric rating scale (for example, from 1 to 10) in which each option has its own color. The built-in SurveyJS [Rating Scale](https://surveyjs.io/form-library/examples/rating-scale/) question does not support per-item color customization, and the Smileys variation is limited to a predefined color set. This makes it unsuitable when you require full control over individual option styling.
+I need a numeric rating scale (for example, from 1 to 10) in which each rating option has its own color. The Smileys variation of the built-in SurveyJS [Rating Scale](https://surveyjs.io/form-library/examples/rating-scale/) question uses a predefined color palette, making it unsuitable when you need full control over the appearance of individual rating items.
 
 ## Solution
 
-Use a [Radio Button Group](https://surveyjs.io/form-library/examples/single-select-radio-button-group/) question with a custom item component that renders each option as a colored element.
+SurveyJS Rating Scale exposes the [`itemComponent`](https://surveyjs.io/form-library/documentation/api-reference/rating-scale-question-model#itemComponent) property, which allows you to replace the default renderer for individual rating items with a custom React component. Register the component with `ReactElementFactory`, then reference it in the survey JSON.
 
-The implementation consists of the following steps:
+To implement a colored rating scale, do the following:
 
-1. Register a custom `color` property for choice options (`"itemvalue"`) using the [`Serializer` API](https://surveyjs.io/form-library/documentation/customize-question-types/add-custom-properties-to-a-form#add-custom-properties-to-an-existing-class).
-2. Create a custom component that renders each radio item as a colored element displaying its value.
-3. Assign this custom component to the question via the [`itemComponent`](https://surveyjs.io/form-library/documentation/api-reference/radio-button-question-model#itemComponent) property.
-4. Specify colors for each choice in the `choices` array.
+1. Create a custom rating item component by extending `SurveyElementBase` and register it with `ReactElementFactory`.
+2. Import the custom item component in your survey component so that it is registered during initialization.
+3. Set the Rating Scale's `itemComponent` property to the registered component name.
+4. Set the Rating Scale's [`displayMode`](https://surveyjs.io/form-library/documentation/api-reference/rating-scale-question-model#displayMode) property to `"buttons"` to prevent rendering the question as a dropdown.
+5. Add CSS to define the appearance and hover behavior of the rating items.
 
 ### Code Sample
 
 ```javascript
-// Converts HEX color to RGB string (used for rgba values)
-function hexToRgb(hex) {
+// ColoredRatingItem.tsx
+import React from "react";
+import { Serializer } from "survey-core";
+import type { QuestionRatingModel, RenderedRatingItem } from "survey-core";
+import { ReactElementFactory, SurveyElementBase } from "survey-react-ui";
+
+Serializer.addProperty("itemvalue", "color");
+
+function hexToRgb(hex: string): string {
   const cleanHex = hex.replace("#", "");
   const bigint = parseInt(cleanHex, 16);
   const r = (bigint >> 16) & 255;
@@ -28,283 +36,237 @@ function hexToRgb(hex) {
   return `${r}, ${g}, ${b}`;
 }
 
-// 1. Register custom `color` property on choice options
-Survey.Serializer.addProperty("itemvalue", "color");
+interface ColoredRatingItemProps {
+  question: QuestionRatingModel;
+  item: RenderedRatingItem & { color?: string };
+  index: number;
+  handleOnClick: (event: React.MouseEvent<HTMLInputElement>) => void;
+  isDisplayMode: boolean;
+}
 
-// 2. Create a component for rendering custom radio items
-class CustomRadioItem extends SurveyReact.SurveyQuestionRadioItem {
-  get item() {
+class ColoredRatingItem extends SurveyElementBase<ColoredRatingItemProps, object> {
+  get question(): QuestionRatingModel {
+    return this.props.question;
+  }
+
+  get item(): ColoredRatingItemProps["item"] {
     return this.props.item;
   }
 
-  renderElementContent() {
-    const question = this.question;
-    const item = this.item;
-    const isSelected = question.isItemSelected(item);
+  get index(): number {
+    return this.props.index;
+  }
 
-    const mainColor = item.color || "#9e9e9e";
-    const lightColor = `rgba(${hexToRgb(mainColor)}, 0.12)`;
-    const selectedColor = `rgba(${hexToRgb(mainColor)}, 0.25)`;
-    const borderColor = isSelected ? mainColor : "transparent";
+  handleOnMouseDown(): void {
+    this.question.onMouseDown();
+  }
 
-    const handleOnChange = (event) => {
-      question.clickItemHandler(item, event.currentTarget.checked);
-    };
-
-    const handleOnMouseDown = () => {
-      question.onMouseDown();
-    };
+  renderElement(): React.JSX.Element {
+    const isSelected = this.question.value === this.item.value;
+    const mainColor = this.item.color || "#9e9e9e";
+    const lightColor = `rgba(${hexToRgb(mainColor)}, 0.2)`;
 
     return (
-      <div role="presentation" className="item-root">
-        <label
-          className={`item-label ${isSelected ? "item-label--selected" : ""}`}
-          onMouseDown={handleOnMouseDown}
-          style={{
-            "--item-color": mainColor,
-            "--item-light": lightColor,
-            "--item-selected": selectedColor,
-            "--item-border": borderColor,
-          }}
-        >
-          <input
-            role="option"
-            className="item-input"
-            id={question.getItemId(item)}
-            type="radio"
-            name={question.questionName}
-            checked={this.isChecked}
-            value={item.value}
-            onChange={handleOnChange}
-          />
-          <div className="item-content">
-            <div className="item-text">{item.text || item.value}</div>
-            <span className="radio-outer">
-              <span className="radio-inner"></span>
-            </span>
+      <label
+        onMouseDown={() => this.handleOnMouseDown()}
+        className={`colored-rating-item__label ${this.question.getItemClass(
+          this.item
+        )}`}
+        onMouseOver={() => this.question.onItemMouseIn(this.item)}
+        onMouseOut={() => this.question.onItemMouseOut(this.item)}
+        style={{
+          ["--item-color" as string]: mainColor,
+          ["--item-light" as string]: lightColor,
+        }}
+      >
+        <input
+          type="radio"
+          className="sv-visuallyhidden"
+          name={this.question.questionName}
+          id={this.question.getInputId(this.index)}
+          value={this.item.value}
+          disabled={this.question.isDisabledAttr}
+          readOnly={this.question.isReadOnlyAttr}
+          checked={isSelected}
+          onClick={this.props.handleOnClick}
+          onChange={() => {}}
+          aria-required={this.question.ariaRequired}
+          aria-label={this.item.text || String(this.item.value)}
+          aria-invalid={this.question.ariaInvalid}
+          aria-errormessage={this.question.ariaErrormessage}
+        />
+        <div className="colored-rating-item__content">
+          <div className="colored-rating-item__text">
+            {SurveyElementBase.renderLocString(this.item.locText)}
           </div>
-        </label>
-      </div>
+          <span className="colored-rating-item__marker">
+            <span className="colored-rating-item__marker-inner" />
+          </span>
+        </div>
+      </label>
     );
   }
 }
 
-SurveyReact.ReactElementFactory.Instance.registerElement(
-  "custom-radio-item",
-  (props) => React.createElement(CustomRadioItem, props)
-);
+ReactElementFactory.Instance.registerElement("custom-rate-item", (props) => {
+  return React.createElement(ColoredRatingItem, props);
+});
+
+export default ColoredRatingItem;
 ```
 
 ### Survey JSON Schema
 
 ```json
 {
-  "widthMode": "static",
-  "width": "1000px",
   "pages": [
     {
       "name": "page1",
       "elements": [
         {
-          "type": "radiogroup",
+          "type": "rating",
           "name": "rating-colored",
           "title": "How would you rate your experience?",
-          // 3. Assign the custom component to the question
-          "itemComponent": "custom-radio-item",
-          "colCount": 0,
-          // 4. Specify colors for each choice
-          "choices": [
-            { "value": 1, "text": "1", "color": "#FF0000" },
-            { "value": 2, "text": "2", "color": "#FF3300" },
-            { "value": 3, "text": "3", "color": "#FF6600" },
-            { "value": 4, "text": "4", "color": "#FF9900" },
-            { "value": 5, "text": "5", "color": "#FFCC00" },
-            { "value": 6, "text": "6", "color": "#FFFF00" },
-            { "value": 7, "text": "7", "color": "#99FF00" },
-            { "value": 8, "text": "8", "color": "#66FF00" },
-            { "value": 9, "text": "9", "color": "#33FF00" },
-            { "value": 10, "text": "10", "color": "#00FF00" }
+          "itemComponent": "custom-rate-item",
+          "displayMode": "buttons",
+          "rateValues": [
+            { "value": 1, "color": "#FF0000" },
+            { "value": 2, "color": "#FF3300" },
+            { "value": 3, "color": "#FF6600" },
+            { "value": 4, "color": "#FF9900" },
+            { "value": 5, "color": "#FFCC00" },
+            { "value": 6, "color": "#FFFF00" },
+            { "value": 7, "color": "#99FF00" },
+            { "value": 8, "color": "#66FF00" },
+            { "value": 9, "color": "#33FF00" },
+            { "value": 10, "color": "#00FF00" }
           ]
         }
       ]
     }
-  ]
+  ],
+  "widthMode": "static",
+  "width": "1000px"
 }
 ```
 
 ### Apply Custom Styles
 
-To scope styles to this question, assign a custom CSS class using the [`onUpdateQuestionCssClasses`](https://surveyjs.io/form-library/documentation/api-reference/survey-data-model#onUpdateQuestionCssClasses) event:
+Assign a custom CSS class to the Rating Scale by handling the [`onUpdateQuestionCssClasses`](https://surveyjs.io/form-library/documentation/api-reference/survey-data-model#onUpdateQuestionCssClasses) event:
 
 ```js
 // ...
 // Omitted: `Survey.Model` creation
 // ...
-survey.onUpdateQuestionCssClasses.add((_, options) => {
+survey.onUpdateQuestionCssClasses.add((_sender, options) => {
   if (options.question.name === "rating-colored") {
     options.cssClasses.root += " coloredRadiogroup";
   }
 });
 ```
 
-Add the following styles to your stylesheet:
+Then add the following CSS rules:
 
 ```css
-.coloredRadiogroup .item-root {
-  display: inline-block;
-}
-
-.coloredRadiogroup .item-label {
-  display: flex;
+/* Scoped to the rating-colored question via onUpdateQuestionCssClasses */
+.coloredRadiogroup label.colored-rating-item__label.sd-rating__item {
+  position: relative;
+  display: inline-flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-width: 54px;
-  width: 54px;
-  padding: 10px 4px;
-  border-radius: 10px;
-  background: var(--item-light, rgba(158, 158, 158, 0.12));
-  border: 2px solid var(--item-border, transparent);
-  cursor: pointer;
-  transition: all 0.18s ease;
-  user-select: none;
+  align-items: stretch;
+  justify-content: flex-start;
+  box-sizing: border-box;
+  width: 56px;
+  min-width: 56px;
+  height: auto;
+  padding: 0;
+  margin: 0;
+  border: 2px solid transparent;
+  border-radius: 12px;
+  background-color: var(--item-light) !important;
+  color: #161616;
+  fill: currentColor;
+  box-shadow: none !important;
+  white-space: normal;
+  font-weight: 600;
+  transition: border-color 0.15s ease, transform 0.15s ease;
 }
 
-.coloredRadiogroup .item-label:hover {
-  background: rgba(0, 0, 0, 0.06);
-  transform: translateY(-2px);
+.coloredRadiogroup label.colored-rating-item__label.sd-rating__item--fixed-size {
+  width: 56px;
+  padding: 0;
 }
 
-.coloredRadiogroup .item-label.item-label--selected {
-  background: var(--item-selected, rgba(25, 179, 148, 0.25));
-  border: 2px solid var(--item-color);
-  box-shadow: 0 0 0 4px rgba(var(--item-color-rgb, 25, 179, 148), 0.18);
-  transform: scale(1.06);
+.coloredRadiogroup label.colored-rating-item__label.sd-rating__item--allowhover:hover {
+  background-color: var(--item-light) !important;
+  transform: scale(1.04);
 }
 
-.coloredRadiogroup .item-content {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 10px;
+.coloredRadiogroup label.colored-rating-item__label.sd-rating__item:focus-within {
+  box-shadow: 0 0 0 2px var(--item-color) !important;
 }
 
-.coloredRadiogroup .item-text {
-  font-size: 18px;
-  min-height: 26px;
-  font-weight: 700;
-  color: #1a1a1a;
-}
-
-.coloredRadiogroup .radio-outer {
-  width: 18px;
-  height: 18px;
-  border: 2px solid #888;
-  border-radius: 50%;
-  background: white;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s;
-}
-
-.coloredRadiogroup .item-label:hover .radio-outer {
-  border-color: #555;
-}
-
-.coloredRadiogroup .item-label.item-label--selected .radio-outer {
+.coloredRadiogroup label.colored-rating-item__label.sd-rating__item--selected,
+.coloredRadiogroup label.colored-rating-item__label.sd-rating__item--selected.sd-rating__item--allowhover:hover {
+  background-color: var(--item-light) !important;
+  color: #161616 !important;
   border-color: var(--item-color);
-  background: var(--item-color);
+  box-shadow: none !important;
 }
 
-.coloredRadiogroup .radio-inner {
-  display: none;
-  width: 8px;
-  height: 8px;
-  background: white;
+.coloredRadiogroup label.colored-rating-item__label.sd-rating__item--selected:focus-within {
+  box-shadow: 0 0 0 2px var(--item-color) !important;
+}
+
+.coloredRadiogroup .colored-rating-item__content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 12px 8px 10px;
+}
+
+.coloredRadiogroup .colored-rating-item__text {
+  font-size: 16px;
+  font-weight: 700;
+  color: #161616;
+  line-height: 1;
+}
+
+.coloredRadiogroup .colored-rating-item__marker {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
   border-radius: 50%;
+  border: 2px solid #bdbdbd;
+  background-color: transparent;
+  flex-shrink: 0;
 }
 
-.coloredRadiogroup .item-label.item-label--selected .radio-inner {
+.coloredRadiogroup label.colored-rating-item__label.sd-rating__item--selected .colored-rating-item__marker {
+  border-color: var(--item-color);
+}
+
+.coloredRadiogroup .colored-rating-item__marker-inner {
+  display: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background-color: var(--item-color);
+}
+
+.coloredRadiogroup label.colored-rating-item__label.sd-rating__item--selected .colored-rating-item__marker-inner {
   display: block;
 }
 
-.coloredRadiogroup .item-input {
-  position: absolute;
-  opacity: 0;
-  width: 0;
-  height: 0;
+.coloredRadiogroup fieldset {
+  gap: 8px;
 }
-
-.coloredRadiogroup .sd-selectbase__list,
-.sd-selectbase--row {
-  display: flex;
-  flex-direction: row;
-  flex-wrap: nowrap;
-  gap: 12px;
-  overflow-x: auto;
-  padding: 12px 16px;
-  justify-content: flex-start;
-  -webkit-overflow-scrolling: touch;
-  scroll-padding-left: 16px;
-  scroll-snap-type: x proximity;
-  margin-right: auto;
-  text-align: left;
-}
-
-.coloredRadiogroup .sd-question .sd-selectbase__item,
-.sd-selectbase--row .sd-selectbase__item {
-  flex: 0 0 auto;
-}
-
-.coloredRadiogroup .sd-question .sd-selectbase__list::-webkit-scrollbar,
-.sd-selectbase--row::-webkit-scrollbar {
-  height: 6px;
-}
-
-.coloredRadiogroup .sd-question .sd-selectbase__list::-webkit-scrollbar-thumb,
-.sd-selectbase--row::-webkit-scrollbar-thumb {
-  background: #aaa;
-  border-radius: 3px;
-}
-
-.coloredRadiogroup .sd-question .sd-selectbase__list::-webkit-scrollbar-track,
-.sd-selectbase--row::-webkit-scrollbar-track {
-  background: #f1f1f1;
-}
-
-@media (max-width: 600px) {
-  .coloredRadiogroup .sd-question .sd-selectbase__list,
-  .sd-selectbase--row {
-    flex-direction: column;
-    gap: 8px;
-    overflow-x: hidden;
-    align-items: flex-start;
-    padding: 8px 10px;
-    justify-content: flex-start;
-  }
-
-  .coloredRadiogroup .sd-selectbase__item {
-    width: 100%;
-    max-width: 220px;
-  }
-
-  .coloredRadiogroup .item-label {
-    width: 100%;
-    min-width: unset;
-    max-width: 220px;
-    padding: 8px 10px;
-    justify-content: flex-start;
-    text-align: left;
-  }
-
-  .coloredRadiogroup .item-text {
-    font-size: 18px;
-  }
-}
-
 ```
 
 ## Live Demo
 
-[Open in CodeSandbox](https://codesandbox.io/p/devbox/vigilant-river-32d3mq)
+[Open in CodeSandbox](https://codesandbox.io/p/devbox/condescending-roman-wdf6xl)
