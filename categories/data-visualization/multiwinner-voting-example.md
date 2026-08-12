@@ -136,9 +136,12 @@ function VotingAlgorithmVisualizer(question, data, options) {
     const totalEmployees = data.length;
 
     function coveragePercent(selected) {
+      if (totalEmployees === 0) return 0;
+
       const covered = new Set();
       data.forEach((d) => {
-        if (d.availableDates.some((v) => selected.includes(v))) {
+        const dates = d[question.name];
+        if (Array.isArray(dates) && dates.some((v) => selected.includes(v))) {
           covered.add(d);
         }
       });
@@ -205,7 +208,7 @@ function VotingAlgorithmVisualizer(question, data, options) {
   return new VisualizerBase(
     question,
     data,
-    { renderContent },
+    { renderContent, dataProvider: options.dataProvider },
     "voting-algorithm"
   );
 }
@@ -250,7 +253,7 @@ Below is the survey JSON schema used in this example:
 }
 ```
 
-[Open in CodeSandbox](https://codesandbox.io/p/sandbox/surveyjs-dashboard-multiwinner-voting-example-forked-4pllmn)
+[Open in CodeSandbox](https://codesandbox.io/p/sandbox/surveyjs-dashboard-multiwinner-voting-example-forked-ksj6l3)
 
 ## Learn More
 
