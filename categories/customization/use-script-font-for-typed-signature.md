@@ -33,9 +33,9 @@ Assign a custom CSS class to the signature question so the styles affect only it
 // ...
 // Omitted: `Survey.Model` creation
 // ...
-survey.onUpdateQuestionCssClasses.add((_, options) => {
-  if (options.question.name === "signature") {
-    options.cssClasses.root += " signature-input";
+survey.onUpdateQuestionCssClasses.add((sender, options) => {
+  if(options.question.name === "typedSignature"){            
+    options.cssClasses.control += " signatureInput";
   }
 });
 ```
@@ -53,7 +53,7 @@ Import a script font and apply it to the custom CSS class:
 }
 ```
 
-[Open in Plunker](https://plnkr.co/edit/pv3IwxvCbZ9HFsHn)
+[Open in Plunker](https://plnkr.co/edit/8aExttmhXvMpjH13)
 
 ### Let Respondents Choose a Signature Method (Optional)
 
@@ -89,4 +89,4 @@ If you want to support both handwritten and typed signatures, add a choice quest
 
 Apply the custom CSS class only to the typed signature question by using the `onUpdateQuestionCssClasses` event handler shown above.
 
-[Open in Plunker](https://plnkr.co/edit/z9r60dy35vlz6KTN)
+[Open in Plunker](https://plnkr.co/edit/gmGZ8oSeMJ7Z1TM4)

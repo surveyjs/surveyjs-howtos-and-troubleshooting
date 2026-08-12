@@ -61,7 +61,8 @@ const locationsConfig = {
           isRequired: true,
           choicesLazyLoadEnabled: true,
           choicesLazyLoadPageSize: 40,
-          enableIf: "{row.region} notempty"
+          enableIf: "{row.region} notempty",
+          resetValueIf: "{row.region} empty"
         }
       ]
     }
@@ -154,7 +155,7 @@ function sendRequest(url, onloadSuccessCallback) {
 
 ### Live Demo
 
-[Open in Plunker](https://plnkr.co/edit/9jw5Rhbm9CMMByQD)
+[Open in Plunker](https://plnkr.co/edit/SW0iYFNMmgfijNMm)
 
 ## Learn More
 

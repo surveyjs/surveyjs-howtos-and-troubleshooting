@@ -14,14 +14,14 @@ The method works as follows:
 2. The algorithm evaluates all possible orderings and identifies the one with the fewest pairwise conflicts compared to all individual rankings.
 3. The resulting sequence represents the group’s collective preference.
 
-**Example**:
+Example:
 
 - Participant 1: A → B → C → D
 - Participant 2: B → A → D → C
 - Participant 3: A → C → B → D
 - Kemeny result: A → B → C → D (minimizes conflicts across all rankings)
 
-To calculate and display Kemeny results, you can implement a custom data visualizer for SurveyJS Dashboard.
+To calculate and display Kemeny results, implement a custom data visualizer for SurveyJS Dashboard. The pattern matches other custom HTML visualizers (for example, the poll visualizer): provide a custom `renderContent` function, unregister the default Ranking visualizer, register yours for the `"ranking"` question type, and render results with `Dashboard`.
 
 ![Kemeny method visualization using SurveyJS Dashboard](./ranking-using-kemeny-method.png)
 
@@ -29,13 +29,11 @@ To calculate and display Kemeny results, you can implement a custom data visuali
 
 #### Helper Function
 
-The following helper functions compute the consensus ranking using the Kemeny method:
+The following helper computes the consensus ranking using the Kemeny method:
 
 ```js
 // kemenyRankingHelper.js
-export function computeKemenyRanking(data) {
-  const venues = ["italian", "sushi", "burger", "vegan"];
-
+export function computeKemenyRanking(data, questionName, choiceValues) {
   function allPermutations(arr) {
     if (arr.length <= 1) return [arr];
     const result = [];
@@ -47,6 +45,7 @@ export function computeKemenyRanking(data) {
   }
 
   function pairwiseScore(permutation, ranking) {
+    if (!Array.isArray(ranking)) return 0;
     let score = 0;
     for (let i = 0; i < permutation.length; i++) {
       for (let j = i + 1; j < permutation.length; j++) {
@@ -58,14 +57,14 @@ export function computeKemenyRanking(data) {
     return score;
   }
 
-  const permutations = allPermutations(venues);
-  let bestPerm = permutations[0];
+  const permutations = allPermutations(choiceValues);
+  let bestPerm = permutations[0] || [];
   let bestScore = -1;
 
   permutations.forEach((p) => {
     let totalScore = 0;
     data.forEach((d) => {
-      totalScore += pairwiseScore(p, d.venueRanking);
+      totalScore += pairwiseScore(p, d[questionName]);
     });
     if (totalScore > bestScore) {
       bestScore = totalScore;
@@ -77,27 +76,38 @@ export function computeKemenyRanking(data) {
 }
 ```
 
-
 #### Custom Data Visualizer
 
-This visualizer displays the consensus ranking computed by the Kemeny method.
+This visualizer displays the consensus ranking computed by the Kemeny method. Like the poll visualizer, it uses a custom `renderContent` function (HTML table), so it does not depend on Chart.js chart rendering.
 
-```javascript
+```js
 // kemenyRankingVisualizer.js
 import {
   VisualizerBase,
   VisualizationManager,
   localization,
+  RankingModel,
 } from "survey-analytics";
 import { computeKemenyRanking } from "./kemenyRankingHelper.js";
 
 function KemenyVisualizer(question, data, options) {
-  function renderContent(container, visualizer) {
-    container.style.width = "100%";
+  options = options || {};
 
-    const consensus = computeKemenyRanking(visualizer.surveyData);
+  function renderContent(contentContainer, visualizer) {
+    contentContainer.style.width = "100%";
 
-    const html =
+    const choiceValues = (question.choices || []).map((c) => c.value);
+    const consensus = computeKemenyRanking(
+      visualizer.surveyData,
+      question.name,
+      choiceValues
+    );
+
+    const rankingText = consensus
+      .map((v) => question.choices.find((c) => c.value === v)?.text || v)
+      .join(" → ");
+
+    contentContainer.innerHTML =
       `<div style="width:100%;">` +
       `<table style="border-collapse: collapse; width: 100%; table-layout: fixed;">` +
       `<thead>` +
@@ -110,9 +120,7 @@ function KemenyVisualizer(question, data, options) {
       `<tr>` +
       `<td style="border:1px solid #ccc; padding:4px;">Kemeny</td>` +
       `<td style="border:1px solid #ccc; padding:4px;">` +
-      consensus
-        .map((v) => question.choices.find((c) => c.value === v)?.text || v)
-        .join(" → ") +
+      rankingText +
       `</td>` +
       `</tr>` +
       `</tbody>` +
@@ -124,27 +132,56 @@ function KemenyVisualizer(question, data, options) {
       `</ul>` +
       `</div>` +
       `</div>`;
-
-    container.innerHTML = html;
   }
 
   return new VisualizerBase(
     question,
     data,
-    { renderContent },
+    { renderContent, dataProvider: options.dataProvider },
     "kemeny-visualizer"
   );
 }
 
-VisualizationManager.registerVisualizer("ranking", KemenyVisualizer, 0);
+// Replace the default Ranking visualizer
+VisualizationManager.unregisterVisualizer("ranking", RankingModel);
+VisualizationManager.registerVisualizer(
+  "ranking",
+  KemenyVisualizer,
+  0,
+  "kemeny-visualizer"
+);
+VisualizationManager.registerVisualizer(
+  "kemeny-visualizer",
+  KemenyVisualizer,
+  0,
+  "kemeny-visualizer"
+);
 
-localization.locales["en"]["visualizer_kemeny-visualizer"] ="Kemeny Consensus Table";
-localization.locales["en"]["visualizer_ranking"] = "Chart";
+localization.locales["en"]["visualizer_kemeny-visualizer"] =
+  "Kemeny Consensus Table";
+```
+
+#### Render with Dashboard
+
+```js
+const survey = new Survey.Model(json);
+
+setTimeout(() => {
+  const dashboard = new SurveyAnalytics.Dashboard({
+    questions: survey.getAllQuestions(),
+    data: dataFromServer,
+    allowDynamicLayout: false,
+    allowHideQuestions: false
+  });
+
+  dashboard.applyTheme(SurveyTheme.MonochromeLight);
+
+  document.getElementById("loadingIndicator").style.display = "none";
+  dashboard.render("surveyDashboardContainer");
+}, 1000);
 ```
 
 ### Survey JSON Schema
-
-Below is the survey JSON schema used in this example:
 
 ```json
 {
@@ -172,9 +209,11 @@ Below is the survey JSON schema used in this example:
 }
 ```
 
-[Open in CodeSandbox](https://codesandbox.io/p/sandbox/surveyjs-dashboard-kemeny-method-ranking-43ncql)
+### Live Demo
+
+[Open in CodeSandbox](https://plnkr.co/edit/sU8gxBnwB38OvjR6)
 
 ## Learn More
 
-- [Implement a Custom Data Visualizer](https://surveyjs.io/dashboard/examples/custom-survey-data-visualizer/).
+- [Implement a Custom Data Visualizer](https://surveyjs.io/dashboard/examples/custom-survey-data-visualizer/)
 - [Kemeny Method (Wikipedia)](https://en.wikipedia.org/wiki/Kemeny_method)

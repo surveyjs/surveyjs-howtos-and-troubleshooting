@@ -87,4 +87,4 @@ survey.onPropertyValueChangedCallback = (name, _, newValue, sender) => {
 };
 ```
 
-[View Live Example](https://plnkr.co/edit/B2NBtWP8AcS0g01f)
+[View Live Example](https://plnkr.co/edit/4uBtR5cjMTwtb48S)

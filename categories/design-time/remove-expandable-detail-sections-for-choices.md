@@ -29,4 +29,4 @@ creator.onSurveyInstanceSetupHandlers.add((_, options1) => {
 
 ### Live Demo
 
-[Open in Plunker](https://plnkr.co/edit/nFccKeoBGtd6Mj3k)
+[Open in Plunker](https://plnkr.co/edit/5cXv0uTi4s8ymF0O)

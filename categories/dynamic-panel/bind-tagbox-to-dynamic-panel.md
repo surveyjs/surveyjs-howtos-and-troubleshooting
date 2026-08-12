@@ -150,4 +150,4 @@ How it works:
 
 ## Live Demo
 
-[Open in Plunker](https://plnkr.co/edit/p0v8N3VJ7bviFKQE)
+[Open in Plunker](https://plnkr.co/edit/vY4K0ccXLCB3eguM)

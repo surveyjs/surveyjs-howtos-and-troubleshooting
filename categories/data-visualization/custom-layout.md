@@ -9,14 +9,14 @@ SurveyJS Dashboard includes a built-in layout engine that automatically arranges
 To disable the built-in layout engine, follow these steps:
 
 1. Create a custom layout engine that implements the required interface (`start`, `stop`, `update`, `destroy`) but leaves all methods empty.
-2. Pass an instance of this custom engine to the [`VisualizationPanel`](https://surveyjs.io/dashboard/documentation/api-reference/visualization-panel)'s [`layoutEngine`](https://surveyjs.io/dashboard/documentation/visualizationpanel#layoutEngine) option.
-3. Disable the [`allowDynamicLayout`](https://surveyjs.io/dashboard/documentation/visualizationpanel#allowDynamicLayout) option to hide the drag-and-drop handle since reordering is no longer supported.
+2. Pass an instance of this custom engine to the [`IDashboardOptions.layoutEngine`](https://surveyjs.io/dashboard/documentation/api-reference/idashboardoptions#layoutEngine) option.
+3. Disable the [`IDashboardOptions.allowDynamicLayout`](https://surveyjs.io/dashboard/documentation/api-reference/idashboardoptions#allowDynamicLayout) option to hide the drag-and-drop handle since reordering is no longer supported.
 
 ### Code Sample
 
 ```ts
 import { Model } from "survey-core";
-import { VisualizationPanel } from "survey-analytics";
+import { Dashboard } from "survey-analytics";
 
 // ...
 // Omitted: `Survey.Model` creation and results loading
@@ -33,18 +33,17 @@ function LayoutEngine() {
   };
 }
 
-const vizPanel = new VisualizationPanel(
-  survey.getAllQuestions(),
-  surveyResults,
-  { 
-    layoutEngine: new LayoutEngine(), 
-    allowDynamicLayout: false 
-  }
+const dashboard = new Dashboard({
+      questions: survey.getAllQuestions(),
+      data: dataFromServer,
+      layoutEngine: new LayoutEngine(),
+      allowDynamicLayout: false
+    }
 );
 
-vizPanel.render("surveyDashboardContainer");
+dashboard.render("surveyDashboardContainer");
 ```
 
 ### Live Demo
 
-[Open in Plunker](https://plnkr.co/edit/hyGHzBbJXObc0gPc)
+[Open in Plunker](https://plnkr.co/edit/c0SEhhgtxFt3lgqE)

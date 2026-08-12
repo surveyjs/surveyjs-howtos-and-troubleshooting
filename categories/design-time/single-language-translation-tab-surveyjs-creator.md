@@ -125,4 +125,4 @@ loadJSONFromServer(creator, () => {
 });
 ```
 
-[View Live Example](https://plnkr.co/edit/MN3X8OMH13NmrU30)
+[View Live Example](https://plnkr.co/edit/Ywb96MQrX9a3reGq)

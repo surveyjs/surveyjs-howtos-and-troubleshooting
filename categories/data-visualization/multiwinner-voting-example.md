@@ -21,7 +21,7 @@ The process works as follows:
    - CC for maximum unique coverage.
    - PAV to balance both.
 
-To compute the results and visualize them, you can implement a custom data visualizer for SurveyJS Dashboard.
+To compute the results and visualize them, implement a custom data visualizer for SurveyJS Dashboard. The pattern matches other custom HTML visualizers (for example, the poll and Kemeny visualizers): provide a custom `renderContent` function, unregister default checkbox visualizers if you want this view by default, register yours for the `"checkbox"` question type, and render results with `Dashboard`.
 
 ![Multiwinner voting visualization using SurveyJS Dashboard](./multiwinner-voting-example.png)
 
@@ -29,16 +29,21 @@ To compute the results and visualize them, you can implement a custom data visua
 
 #### Helper Functions
 
-The following helper functions implement three voting algorithms: AV, CC, and PAV.
+The following helper functions implement three voting algorithms: AV, CC, and PAV. Pass the checkbox question name (for example, `"availableDates"`) so the helpers read the correct field from each response.
 
 ```javascript
 // multiwinnerVotingHelper.js
 
+function getAnswers(row, questionName) {
+  const value = row[questionName];
+  return Array.isArray(value) ? value : [];
+}
+
 // AV: Top k most approved dates
-export function computeAV(data, k) {
+export function computeAV(data, k, questionName) {
   const counts = {};
   data.forEach((d) => {
-    d.availableDates.forEach((v) => {
+    getAnswers(d, questionName).forEach((v) => {
       counts[v] = (counts[v] || 0) + 1;
     });
   });
@@ -49,25 +54,26 @@ export function computeAV(data, k) {
 }
 
 // CC: Maximize coverage of unique employees
-export function computeCC(data, k) {
-  const candidates = Array.from(new Set(data.flatMap((d) => d.availableDates)));
+export function computeCC(data, k, questionName) {
+  const candidates = Array.from(
+    new Set(data.flatMap((d) => getAnswers(d, questionName)))
+  );
   let bestSet = [];
   let maxCoverage = -1;
 
-  // Generate all combinations of k dates
-  function combinations(arr, k) {
-    if (k === 0) return [[]];
-    if (arr.length < k) return [];
+  function combinations(arr, size) {
+    if (size === 0) return [[]];
+    if (arr.length < size) return [];
     const [first, ...rest] = arr;
-    const withFirst = combinations(rest, k - 1).map((c) => [first, ...c]);
-    const withoutFirst = combinations(rest, k);
+    const withFirst = combinations(rest, size - 1).map((c) => [first, ...c]);
+    const withoutFirst = combinations(rest, size);
     return withFirst.concat(withoutFirst);
   }
 
   combinations(candidates, k).forEach((combo) => {
     const covered = new Set();
     data.forEach((d) => {
-      if (d.availableDates.some((v) => combo.includes(v))) {
+      if (getAnswers(d, questionName).some((v) => combo.includes(v))) {
         covered.add(d);
       }
     });
@@ -81,25 +87,28 @@ export function computeCC(data, k) {
 }
 
 // PAV: Weighted approval voting
-export function computePAV(data, k) {
-  const candidates = Array.from(new Set(data.flatMap((d) => d.availableDates)));
+export function computePAV(data, k, questionName) {
+  const candidates = Array.from(
+    new Set(data.flatMap((d) => getAnswers(d, questionName)))
+  );
   let bestSet = [];
   let maxScore = -1;
 
-  function combinations(arr, k) {
-    if (k === 0) return [[]];
-    if (arr.length < k) return [];
+  function combinations(arr, size) {
+    if (size === 0) return [[]];
+    if (arr.length < size) return [];
     const [first, ...rest] = arr;
-    const withFirst = combinations(rest, k - 1).map((c) => [first, ...c]);
-    const withoutFirst = combinations(rest, k);
+    const withFirst = combinations(rest, size - 1).map((c) => [first, ...c]);
+    const withoutFirst = combinations(rest, size);
     return withFirst.concat(withoutFirst);
   }
 
   combinations(candidates, k).forEach((combo) => {
     let score = 0;
     data.forEach((d) => {
-      const count = d.availableDates.filter((v) => combo.includes(v)).length;
-      // add 1 + 1/2 + 1/3 ... for multiple covered dates
+      const count = getAnswers(d, questionName).filter((v) =>
+        combo.includes(v)
+      ).length;
       for (let i = 1; i <= count; i++) {
         score += 1 / i;
       }
@@ -124,21 +133,29 @@ import {
   VisualizerBase,
   VisualizationManager,
   localization,
+  SelectBase,
+  StatisticsTable,
 } from "survey-analytics";
 import { computeAV, computeCC, computePAV } from "./multiwinnerVotingHelper.js";
 
 function VotingAlgorithmVisualizer(question, data, options) {
-  function calculateCoverage(data) {
+  options = options || {};
+
+  function calculateCoverage(surveyData) {
     const k = 2;
-    const AV = computeAV(data, k);
-    const CC = computeCC(data, k);
-    const PAV = computePAV(data, k);
-    const totalEmployees = data.length;
+    const questionName = question.name;
+    const AV = computeAV(surveyData, k, questionName);
+    const CC = computeCC(surveyData, k, questionName);
+    const PAV = computePAV(surveyData, k, questionName);
+    const totalEmployees = surveyData.length;
 
     function coveragePercent(selected) {
+      if (totalEmployees === 0) return 0;
+
       const covered = new Set();
-      data.forEach((d) => {
-        if (d.availableDates.some((v) => selected.includes(v))) {
+      surveyData.forEach((d) => {
+        const dates = d[questionName];
+        if (Array.isArray(dates) && dates.some((v) => selected.includes(v))) {
           covered.add(d);
         }
       });
@@ -155,8 +172,8 @@ function VotingAlgorithmVisualizer(question, data, options) {
     };
   }
 
-  function renderContent(container, visualizer) {
-    container.style.width = "100%";
+  function renderContent(contentContainer, visualizer) {
+    contentContainer.style.width = "100%";
 
     const { coverage, coveragePercent } = calculateCoverage(
       visualizer.surveyData
@@ -199,30 +216,62 @@ function VotingAlgorithmVisualizer(question, data, options) {
       `</ul>` +
       `</div>`;
 
-    container.innerHTML = html;
+    contentContainer.innerHTML = html;
   }
 
   return new VisualizerBase(
     question,
     data,
-    { renderContent },
+    { renderContent, dataProvider: options.dataProvider },
     "voting-algorithm"
   );
 }
 
+VisualizationManager.unregisterVisualizer("checkbox", SelectBase);
+VisualizationManager.unregisterVisualizer("checkbox", StatisticsTable);
 VisualizationManager.registerVisualizer(
   "checkbox",
   VotingAlgorithmVisualizer,
-  0
+  0,
+  "voting-algorithm"
+);
+VisualizationManager.registerVisualizer(
+  "voting-algorithm",
+  VotingAlgorithmVisualizer,
+  0,
+  "voting-algorithm"
 );
 
 localization.locales["en"]["visualizer_voting-algorithm"] =
   "Voting Algorithm Table";
 ```
 
-### Survey JSON Schema
+#### Render with Dashboard
 
-Below is the survey JSON schema used in this example:
+```js
+const survey = new Survey.Model(json);
+
+// Optional: show one response as a read-only preview above the dashboard
+survey.data = dataFromServer[0] || {};
+survey.mode = "display";
+survey.render(document.getElementById("surveyContainer"));
+
+setTimeout(() => {
+  const dashboard = new SurveyAnalytics.Dashboard({
+    questions: survey.getAllQuestions(),
+    data: dataFromServer,
+    allowDynamicLayout: false,
+    allowHideQuestions: false
+  });
+
+  dashboard.applyTheme(SurveyTheme.MonochromeLight);
+
+  document.getElementById("loadingIndicator").style.display = "none";
+  dashboard.render("surveyDashboardContainer");
+}, 1000);
+```
+
+### Survey JSON Schema
 
 ```json
 {
@@ -241,7 +290,7 @@ Below is the survey JSON schema used in this example:
             { "value": "fri_10", "text": "Friday, Oct 10" },
             { "value": "sat_11", "text": "Saturday, Oct 11" },
             { "value": "fri_17", "text": "Friday, Oct 17" },
-            { "value": "sat_18", "text": "Saturday, Oct 18" },
+            { "value": "sat_18", "text": "Saturday, Oct 18" }
           ]
         }
       ]
@@ -250,7 +299,9 @@ Below is the survey JSON schema used in this example:
 }
 ```
 
-[Open in CodeSandbox](https://codesandbox.io/p/sandbox/surveyjs-dashboard-multiwinner-voting-example-forked-4pllmn)
+### Live Demo
+
+[Open in CodeSandbox](https://plnkr.co/edit/jmHUXktV5NPCc7CN)
 
 ## Learn More
 

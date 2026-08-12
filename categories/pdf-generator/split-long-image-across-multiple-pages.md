@@ -23,23 +23,13 @@ To implement this behavior, follow these steps:
 ### Code Sample
 
 ```js
-import { Model } from "survey-core";
-import { SurveyPDF, HTMLBrick, SurveyHelper } from "survey-pdf";
+// Optional: Improve image quality (increases file size)
+SurveyHelper.HTML_TO_IMAGE_QUALITY = 3;
 
-function saveSurveyToPdf(filename, surveyModel) {
-  const options = {
-    htmlRenderAs: "image",  
-  };
+const pdfDoc = new SurveyPDF.SurveyPDF(json, options);
 
-  const pdfDoc = new SurveyPDF(json, options);
-
-  if (surveyModel) {
-      pdfDoc.data = surveyModel.data;
-      pdfDoc.locale = surveyModel.locale;
-  }
-
-  // Draw a portion of the image
-  function drawPart(
+// Draw a portion of the image
+function drawPart(
     brickHeight, multiplier,
     shift, canvas,
     img, firstBrickHeight,
@@ -69,7 +59,7 @@ function saveSurveyToPdf(filename, surveyModel) {
       yBot: htmlBrick.yTop + multiplier * (firstBrickHeight + fullPagesCnt * onePageSize + brickHeight),
     };
 
-    return new HTMLBrick(null, controller, brickRect, brickHtml, true);
+    return new SurveyPDF.HTMLBrick(controller, brickRect, { html: brickHtml });
   }
 
   // Load the image in Base64 format 
@@ -81,20 +71,20 @@ function saveSurveyToPdf(filename, surveyModel) {
       img.onerror = reject;
     });
     return img;
-  }
+}
 
-  pdfDoc.onRenderQuestion.add(async (_, options) => {
+pdfDoc.onRenderQuestion.add(async (_, options) => {
     // Split only HTML elements
     if (options.question.getType() !== 'html') return;
 
     // Get the HTML brick
     const imageBrick = options.bricks[0];
-    if (!imageBrick || !imageBrick.image) return;
+    if (!imageBrick || !imageBrick.options.link) return;
 
     options.bricks = []; // Clear original brick
 
     // Extract image from the HTML brick
-    const img = await getImage(imageBrick.image);
+    const img = await getImage(imageBrick.options.link);
 
      // Calculate the available page height and the coordinate at which to start drawing
     const fullPageHeight =
@@ -143,30 +133,8 @@ function saveSurveyToPdf(filename, surveyModel) {
 
   pdfDoc.save(filename);
 }
-
-// Optional: Improve image quality (increases file size)
-SurveyHelper.HTML_TO_IMAGE_QUALITY = 3;
-
-const surveyJson = {
-  "elements": [
-    {
-      "type": "html",
-      "name": "question1",
-      "html": "<p>The image below doesn't fit onto one PDF page.</p><img width='579px' height='1416px' src='data:image/jpeg;base64,...'/>"
-    }
-  ]
-};
-
-const survey = new Model(surveyJson);
-survey.addNavigationItem({
-  id: "download-pdf",
-  title: "Download PDF",
-  action: () => {
-    saveSurveyToPdf("surveyResult.pdf", survey);
-  }
-});
 ```
 
 ### Live Demo
 
-[Open in Plunker](https://plnkr.co/edit/pg45sNrlLa0Yv3fo)
+[Open in Plunker](https://plnkr.co/edit/5slBnj23rOi6cRdS)

@@ -70,4 +70,4 @@ This approach keeps the data model explicit and avoids complex event handling.
 
 ### Live Demo
 
-[Open in Plunker](https://plnkr.co/edit/RTZ4q3pUzT1lz9qF)
+[Open in Plunker](https://plnkr.co/edit/OQ37gDxT80OsmYiE)

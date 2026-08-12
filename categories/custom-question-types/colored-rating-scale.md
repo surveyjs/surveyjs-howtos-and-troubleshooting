@@ -269,4 +269,4 @@ Then add the following CSS rules:
 
 ## Live Demo
 
-[Open in CodeSandbox](https://codesandbox.io/p/devbox/condescending-roman-wdf6xl)
+[Open in CodeSandbox](https://codesandbox.io/p/devbox/romantic-cookies-7jkqf4)
