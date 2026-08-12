@@ -28,4 +28,4 @@ pdfDoc.onRenderQuestion.add((_, options) => {
 
 ### Live Demo
 
-[Open in Plunker](https://plnkr.co/edit/OiE5WX51PUqdeRSh)
+[Open in Plunker](https://plnkr.co/edit/4RNOKs2hfJZpMFny)

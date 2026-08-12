@@ -48,7 +48,7 @@ This placement is respected both in the web survey and in the generated PDF.
 
 ### Live Demo
 
-[Open in Plunker](https://plnkr.co/edit/wJjTt4kn7Sc8bNum)
+[Open in Plunker](https://plnkr.co/edit/fuTZGCFnwi5t5yAX)
 
 ## Learn More
 

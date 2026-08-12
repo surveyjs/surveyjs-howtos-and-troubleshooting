@@ -97,7 +97,7 @@ survey.onGetPageTitleActions.add((_, options) => {
           // Use an empty string for the default locale (usually English)
           survey.locale = locale && locale.id === "en" ? "" : (locale ? locale.id : "");
           // Required in SurveyJS v2.5.5 and earlier to re-evaluate expressions
-          survey.runExpressions();
+          // survey.runExpressions();
         }
       }
     )
@@ -107,7 +107,7 @@ survey.onGetPageTitleActions.add((_, options) => {
 
 ### Live Demo
 
-[Open in Plunker](https://plnkr.co/edit/VWFwlIM6c1VqLRVk)
+[Open in Plunker](https://plnkr.co/edit/zYFD9gnFSlYzR94c)
 
 ## Learn More
 

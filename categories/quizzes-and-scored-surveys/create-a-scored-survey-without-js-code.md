@@ -213,11 +213,13 @@ For yes/no eligibility rules, create a calculated value with an expression that 
           "title": "Please list any other health concerns you think we should be aware of"
         },
         {
-          "type": "expression",
+          "type": "boolean",
           "name": "eligibility_result",
-          "title": "Eligibility Result",
+          "title": "Eligible",
           "showNumber": false,
-          "expression": "iif({isEligible} = true, '✅ You are eligible.', '❌ You are not eligible.')"
+          "displayMode": "checkbox",
+          "readOnly": true,
+          "setValueExpression": "iif({isEligible} = true, true, false)"
         }
       ]
     }
@@ -227,7 +229,7 @@ For yes/no eligibility rules, create a calculated value with an expression that 
 }
 ```
 
-[Open in Plunker](https://plnkr.co/edit/xIEC51Ud4lGWHn9w)
+[Open in Plunker](https://plnkr.co/edit/wg8UyGejPhd3pwxc)
 
 ## Learn More
 

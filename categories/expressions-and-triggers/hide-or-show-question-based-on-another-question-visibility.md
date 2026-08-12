@@ -41,7 +41,7 @@ To control the visibility of `question2` based on `question1`, use the [`visible
 
 ### Live Demo
 
-[Open in Plunker](https://plnkr.co/edit/KOX4fE5KkAZs65m8)
+[Open in Plunker](https://plnkr.co/edit/QMAOCvPuUdBxMS2q)
 
 ## Learn More
 

@@ -75,4 +75,4 @@ survey.onValidateQuestion.add((_, options) => {
 
 ## Live Demo
 
-[Open in Plunker](https://plnkr.co/edit/Jt8Dx2vS24AD6OYi)
+[Open in Plunker](https://plnkr.co/edit/apqjNYX6s3GziRj6)
