@@ -92,15 +92,59 @@ function PollVisualizer(question, data, options) {
 }
 
 // Step 3: Register the visualizer for Radio Button Group questions and use it by default
-VisualizationManager.registerVisualizer("radiogroup", PollVisualizer, 0);
+SurveyAnalytics.VisualizationManager.unregisterVisualizer(
+  "radiogroup",
+  SurveyAnalytics.SelectBase
+);
+SurveyAnalytics.VisualizationManager.unregisterVisualizer(
+  "radiogroup",
+  SurveyAnalytics.StatisticsTable
+);
+SurveyAnalytics.VisualizationManager.registerVisualizer(
+  "radiogroup",
+  PollVisualizer,
+  0,
+  "pollVisualizer"
+);
+SurveyAnalytics.VisualizationManager.registerVisualizer(
+  "pollVisualizer",
+  PollVisualizer,
+  0,
+  "pollVisualizer"
+);
 
 // Step 4: Specify the visualizer's display name
 localization.locales["en"]["visualizer_pollVisualizer"] = "Poll Visualizer";
 
 ```
+Apply custom CSS:
+```css
+.sa-poll-table {
+  width: 100%;
+  font-family: SegoeUI, Arial, sans-serif;
+  font-size: 14px;
+  color: #404040;
+  background-color: #f7f7f7;
+}
 
+.sa-poll-table__cell {
+  padding: 8px;
+  min-height: 34px;
+}
 
+.sa-poll-sparkline {
+  min-width: 100px;
+  height: 24px;
+  border: 1px solid #1ab394;
+  border-radius: 5px;
+}
+
+.sa-poll-sparkline-value {
+  height: 100%;
+  background-color: #1ab394;
+}
+```
 
 ### Live Demo
 
-[Open in Plunker](https://plnkr.co/edit/nNepu4sAbjBmI0BJ)
+[Open in Plunker](https://plnkr.co/edit/6829DyUTFJtkL2aZ)
