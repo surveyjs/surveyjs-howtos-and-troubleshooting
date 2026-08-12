@@ -103,4 +103,4 @@ localization.locales["en"]["visualizer_pollVisualizer"] = "Poll Visualizer";
 
 ### Live Demo
 
-[Open in Plunker](https://plnkr.co/edit/Ep3mv8X9tyKJ7vNz)
+[Open in Plunker](https://plnkr.co/edit/nNepu4sAbjBmI0BJ)

@@ -43,4 +43,4 @@ The following survey JSON schema includes a question that is visible only to adm
 
 ### Live Demo
 
-[Open in Plunker](https://plnkr.co/edit/nnsY9tm4eidVhYCI)
+[Open in Plunker](https://plnkr.co/edit/oyd5YdcV70hTQVci)
