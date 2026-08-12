@@ -113,7 +113,7 @@ surveyPDF.onTextMarkdown.add((_, options) => {
 
 ## Live Demo
 
-[Open in CodeSandbox](https://codesandbox.io/p/sandbox/pensive-noether-gdk8sh?file=%2Fsrc%2Findex.js%3A28%2C3-39%2C6)
+[Open in CodeSandbox](https://codesandbox.io/p/sandbox/pensive-noether-gdk8sh)
 
 ## Learn More
 

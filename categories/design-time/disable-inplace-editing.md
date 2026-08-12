@@ -24,4 +24,4 @@ creator.onAllowInplaceEdit.add((_, options) => {
 
 ### Live Demo
 
-[Open in CodeSandbox](https://codesandbox.io/p/sandbox/sad-keldysh-txr5pn?file=%2Fpackage.json%3A9%2C30)
+[Open in CodeSandbox](https://codesandbox.io/p/sandbox/sad-keldysh-txr5pn)
